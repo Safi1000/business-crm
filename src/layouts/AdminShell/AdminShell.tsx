@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Navigate, useLocation, useNavigate, useOutlet } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Receipt, CreditCard, ListTodo, UserPlus } from 'lucide-react';
 import { SideBar } from './SideBar';
 import { TopBar } from './TopBar';
@@ -72,17 +72,11 @@ export function AdminShell() {
         className={`pt-topbar transition-[padding] duration-300 ${collapsed ? 'pl-sidebar-collapsed' : 'pl-sidebar'}`}
       >
         <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              variants={routeTransition}
-              initial="hidden"
-              animate="show"
-              exit="exit"
-            >
-              {outlet}
-            </motion.div>
-          </AnimatePresence>
+          {/* Entrance-only, keyed by path — avoids AnimatePresence deadlocking on
+              lazy/Suspense route children (which left the page blank). */}
+          <motion.div key={location.pathname} variants={routeTransition} initial="hidden" animate="show">
+            {outlet}
+          </motion.div>
         </div>
       </main>
 

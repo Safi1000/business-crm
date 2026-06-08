@@ -50,17 +50,28 @@ export function Popover({
 
   const triggerRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [coords, setCoords] = useState<{
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
+    width: number;
+  } | null>(null);
 
+  // Position with top/left/right (never a CSS transform) so framer-motion's
+  // animated transform (scale/y) can't clobber the alignment.
   const place = useCallback(() => {
     const el = triggerRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setCoords({
-      top: side === 'bottom' ? r.bottom + 6 : r.top - 6,
-      left: align === 'end' ? r.right : align === 'center' ? r.left + r.width / 2 : r.left,
+    const next: { top?: number; bottom?: number; left?: number; right?: number; width: number } = {
       width: r.width,
-    });
+    };
+    if (side === 'bottom') next.top = r.bottom + 6;
+    else next.bottom = window.innerHeight - r.top + 6;
+    if (align === 'end') next.right = Math.max(8, window.innerWidth - r.right);
+    else next.left = r.left;
+    setCoords(next);
   }, [align, side]);
 
   useLayoutEffect(() => {
@@ -114,17 +125,12 @@ export function Popover({
               transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: 'fixed',
-                top: side === 'bottom' ? coords.top : undefined,
-                bottom: side === 'top' ? window.innerHeight - coords.top : undefined,
+                top: coords.top,
+                bottom: coords.bottom,
                 left: coords.left,
+                right: coords.right,
                 width: matchWidth ? coords.width : undefined,
-                transform:
-                  align === 'end'
-                    ? 'translateX(-100%)'
-                    : align === 'center'
-                      ? 'translateX(-50%)'
-                      : undefined,
-                transformOrigin: side === 'bottom' ? 'top' : 'bottom',
+                transformOrigin: `${side === 'bottom' ? 'top' : 'bottom'} ${align === 'end' ? 'right' : 'left'}`,
               }}
               className={cn(
                 'z-[95] overflow-hidden rounded-xl border border-line bg-surface-overlay shadow-lg',
