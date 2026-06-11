@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, List, KanbanSquare, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageHeader, FilterBar } from '@/shared';
@@ -61,7 +61,7 @@ export function TasksPage() {
   const [params, setParams] = useSearchParams();
   const [view, setView] = useState('board');
   const [openTask, setOpenTask] = useState<Task | null>(null);
-  const [createOpen, setCreateOpen] = useState(params.get('new') === '1');
+  const [createOpen, setCreateOpen] = useState(false);
   const [createDue, setCreateDue] = useState<string | undefined>();
   const { values, set, reset, activeCount } = useUrlFilters({ search: '', priority: '', project: '', status: '' });
   const { data: projects } = useProjectsList();
@@ -73,6 +73,16 @@ export function TasksPage() {
     setCreateDue(undefined);
     if (params.get('new')) { params.delete('new'); setParams(params, { replace: true }); }
   };
+
+  // Open the create modal on ?new=1 (from a quick-create), then clear the flag so a repeat
+  // click while already on this page reopens it. See ClientsListPage for the rationale.
+  useEffect(() => {
+    if (params.get('new') === '1') {
+      setCreateOpen(true);
+      params.delete('new');
+      setParams(params, { replace: true });
+    }
+  }, [params, setParams]);
 
   const onStatusChange = (id: string, status: TaskStatus) => {
     update.mutate({ id, data: { status } });

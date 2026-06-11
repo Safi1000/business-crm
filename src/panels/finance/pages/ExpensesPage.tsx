@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Plus, Download, Users, CreditCard, HandCoins } from 'lucide-react';
@@ -68,7 +68,7 @@ export function ExpensesPage() {
   const money = useFormatMoney();
   const [params, setParams] = useSearchParams();
   const [subtab, setSubtab] = useState('expenses');
-  const [addOpen, setAddOpen] = useState(params.get('new') === '1');
+  const [addOpen, setAddOpen] = useState(false);
   const [vendorsOpen, setVendorsOpen] = useState(false);
   const { values, set, reset, activeCount } = useUrlFilters({ search: '', category: '', mode: '', page: '1' });
 
@@ -84,6 +84,16 @@ export function ExpensesPage() {
     setAddOpen(false);
     if (params.get('new')) { params.delete('new'); setParams(params, { replace: true }); }
   };
+
+  // Open the add-expense modal on ?new=1 (from a quick-create), then clear the flag so a
+  // repeat click while already on this page reopens it. See ClientsListPage for the rationale.
+  useEffect(() => {
+    if (params.get('new') === '1') {
+      setAddOpen(true);
+      params.delete('new');
+      setParams(params, { replace: true });
+    }
+  }, [params, setParams]);
 
   const columns: Column<Expense>[] = [
     { key: 'date', header: 'Date', render: (e) => formatDate(e.date) },

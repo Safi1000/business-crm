@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Download, Users, FileSignature, Wallet, Crown, Eye, Pencil, MoreHorizontal } from 'lucide-react';
 import { PageHeader, KpiStrip, FilterBar, useFormatMoney } from '@/shared';
@@ -28,7 +28,7 @@ export function ClientsListPage() {
     page: '1',
   });
   const [sort, setSort] = useState<SortState>({ key: 'name', dir: 'asc' });
-  const [modalOpen, setModalOpen] = useState(params.get('new') === '1');
+  const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Client | undefined>();
   const [confirm, setConfirm] = useState<{ client: Client; action: 'deactivate' | 'delete' } | null>(null);
   const { setStatus, remove } = useClientMutations();
@@ -64,6 +64,18 @@ export function ClientsListPage() {
       setParams(params, { replace: true });
     }
   };
+
+  // Open the create modal whenever a quick-create navigates here with ?new=1, then clear the
+  // flag. Driving this from an effect (not initial state) means re-clicking "New Client" while
+  // already on this page re-adds ?new=1 and reopens the modal.
+  useEffect(() => {
+    if (params.get('new') === '1') {
+      setEditing(undefined);
+      setModalOpen(true);
+      params.delete('new');
+      setParams(params, { replace: true });
+    }
+  }, [params, setParams]);
 
   const columns: Column<Client>[] = [
     { key: 'code', header: 'Code', sortAccessor: (c) => c.code, render: (c) => <span className="nums font-medium text-brand-600">{c.code}</span> },
