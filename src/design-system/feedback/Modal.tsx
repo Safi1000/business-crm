@@ -44,6 +44,12 @@ export function Modal({
   className,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // Read these through refs so changing their identity (callers pass `onClose` inline)
+  // does NOT re-run the effect below — re-running it on every keystroke stole input focus.
+  const onCloseRef = useRef(onClose);
+  const dismissableRef = useRef(dismissable);
+  onCloseRef.current = onClose;
+  dismissableRef.current = dismissable;
 
   useEffect(() => {
     if (!open) return;
@@ -51,9 +57,9 @@ export function Modal({
     document.body.style.overflow = 'hidden';
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && dismissable) {
+      if (e.key === 'Escape' && dismissableRef.current) {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
       }
       if (e.key === 'Tab' && panelRef.current) {
         const nodes = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
@@ -85,7 +91,9 @@ export function Modal({
       cancelAnimationFrame(raf);
       prevActive?.focus?.();
     };
-  }, [open, onClose, dismissable]);
+    // Only (re)initialise the trap when the modal opens/closes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   return createPortal(
     <AnimatePresence>
