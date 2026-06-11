@@ -36,7 +36,9 @@ export function LoginPage() {
     setAuthError(null);
     try {
       await signIn(values.email, values.password);
-      navigate(routes.dashboard);
+      // The Super Super Admin manages tenants from the Companies list, not a company dashboard.
+      const role = useAuthStore.getState().user?.role;
+      navigate(role === 'Super Super Admin' ? routes.companies : routes.dashboard);
     } catch {
       setAuthError('Email or password is incorrect.');
     } finally {

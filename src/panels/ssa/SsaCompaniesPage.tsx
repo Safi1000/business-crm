@@ -10,12 +10,18 @@ import { ssaApi, type CompanyRow } from '@/data/mock-api';
 import { formatDate, daysUntil } from '@/lib/format';
 import { routes } from '@/config/routes';
 
-function subStatus(c: CompanyRow): { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' } {
-  if (!c.subscriptionExpiresAt) return { label: 'No subscription', tone: 'neutral' };
+function subStatus(c: CompanyRow): {
+  label: string;
+  tone: 'success' | 'warning' | 'danger' | 'neutral';
+  detail: string | null;
+} {
+  if (!c.subscriptionExpiresAt) return { label: 'No subscription', tone: 'neutral', detail: null };
   const d = daysUntil(c.subscriptionExpiresAt);
-  if (d < 0) return { label: 'Expired', tone: 'danger' };
-  if (d <= 14) return { label: `Expires in ${d}d`, tone: 'warning' };
-  return { label: `Active to ${formatDate(c.subscriptionExpiresAt)}`, tone: 'success' };
+  const renews = `Renews ${formatDate(c.subscriptionExpiresAt)}`;
+  if (d < 0) return { label: `Expired ${-d}d ago`, tone: 'danger', detail: `Ended ${formatDate(c.subscriptionExpiresAt)}` };
+  if (d === 0) return { label: 'Expires today', tone: 'danger', detail: renews };
+  if (d <= 14) return { label: `${d} ${d === 1 ? 'day' : 'days'} left`, tone: 'warning', detail: renews };
+  return { label: `${d} days left`, tone: 'success', detail: renews };
 }
 
 export function SsaCompaniesPage() {
@@ -75,7 +81,10 @@ export function SsaCompaniesPage() {
                 </div>
                 <p className="font-semibold text-content">{c.name}</p>
                 <p className="mt-0.5 text-xs text-content-muted">{c.presentationCurrency} · {c.employeeCount} employees · {c.adminCount} users</p>
-                <div className="mt-2"><StatusBadge status={subStatus(c).label} tone={subStatus(c).tone} size="sm" dot /></div>
+                <div className="mt-2 flex items-center gap-2">
+                  <StatusBadge status={subStatus(c).label} tone={subStatus(c).tone} size="sm" dot />
+                  {subStatus(c).detail && <span className="text-2xs text-content-subtle">{subStatus(c).detail}</span>}
+                </div>
                 <div className="mt-4 flex gap-2">
                   <Button size="sm" fullWidth iconRight={ArrowRight} onClick={() => enterCompany(c)} disabled={!c.active}>Open</Button>
                   <Button size="sm" variant="outline" icon={CreditCard} onClick={() => setBillingFor(c)} aria-label="Subscription" />

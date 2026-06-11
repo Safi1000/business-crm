@@ -70,6 +70,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     const u = await loadUser(data.user.id, data.user.email ?? email);
+    // The Super Super Admin always starts unscoped at the Companies list — clear any
+    // company they were "viewing as" in a previous session so login lands on /companies.
+    if (u.role === 'Super Super Admin' && u.viewAsCompany) {
+      await supabase.from('profiles').update({ view_as_company: null }).eq('id', u.id);
+      u.viewAsCompany = null;
+    }
     set({ status: 'authed', authenticated: true, user: u });
   },
 
