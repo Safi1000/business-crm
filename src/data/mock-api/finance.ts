@@ -94,10 +94,18 @@ export const financeApi = {
   },
   /** Manually override (or add) an FX rate for a base/quote pair on a date. */
   async fxOverride(base: string, quote: string, rate: number, date?: string): Promise<void> {
-    const { error } = await supabase.from('fx_rates').insert({
-      base, quote, rate, source: 'manual', date: date ?? new Date().toISOString().slice(0, 10),
-    });
+    const { error } = await supabase.from('fx_rates').upsert(
+      { base, quote, rate, source: 'manual', date: date ?? new Date().toISOString().slice(0, 10) },
+      { onConflict: 'company_id,date,base,quote' },
+    );
     if (error) throw error;
+  },
+  /** Pull live rates from the FX providers (Frankfurter, then ExchangeRate-API) into fx_rates. */
+  async fxRefresh(quotes?: string[]): Promise<{ base: string; updated: string[]; unsupported: string[] }> {
+    const { data, error } = await supabase.functions.invoke('fx-refresh', { body: quotes ? { quotes } : {} });
+    if (error) throw error;
+    if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+    return data as { base: string; updated: string[]; unsupported: string[] };
   },
   async chartOfAccounts(): Promise<Account[]> {
     const { data, error } = await supabase.from('chart_of_accounts').select('id, account_code, account_name, account_type').order('account_code');
