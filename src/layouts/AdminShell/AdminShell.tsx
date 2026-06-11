@@ -99,7 +99,9 @@ export function AdminShell() {
       <main
         className={`pt-topbar transition-[padding] duration-300 ${collapsed ? 'pl-sidebar-collapsed' : 'pl-sidebar'}`}
       >
-        <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
+        {/* pb-28 reserves a safe area so the floating AI Assistant pill never covers
+            bottom-of-page content (e.g. the P&L "Net Profit" row in Financial Reports). */}
+        <div className="mx-auto max-w-[1500px] px-4 pt-6 pb-28 sm:px-6 lg:px-8">
           {/* Entrance-only, keyed by path — avoids AnimatePresence deadlocking on
               lazy/Suspense route children (which left the page blank). */}
           <motion.div key={location.pathname} variants={routeTransition} initial="hidden" animate="show">
