@@ -24,6 +24,7 @@ import { Avatar } from '@ds/data-display';
 import { useUIStore } from '@/app/stores/ui';
 import { useAuthStore } from '@/app/stores/auth';
 import { ChangePasswordModal } from '@/shared';
+import { ProfileModal } from '@/panels/admin/modals/ProfileModal';
 import { routes } from '@/config/routes';
 import { notificationsApi } from '@/data/mock-api';
 import { qk } from '@/data/query-keys';
@@ -45,6 +46,7 @@ export function TopBar() {
   const setViewAsCompany = useAuthStore((s) => s.setViewAsCompany);
   const qc = useQueryClient();
   const [pwOpen, setPwOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const isSsa = user?.role === 'Super Super Admin';
 
   const { data: notifications = [] } = useQuery({
@@ -147,12 +149,12 @@ export function TopBar() {
           header={user?.email}
           trigger={
             <button className="flex items-center gap-2 rounded-lg p-1 pr-2 transition-colors hover:bg-surface-sunken">
-              <Avatar name={user?.name ?? 'User'} size="sm" />
+              <Avatar name={user?.name ?? 'User'} src={user?.avatarUrl ?? undefined} size="sm" />
               <ChevronDown size={14} className="hidden text-content-subtle sm:block" />
             </button>
           }
           items={[
-            { label: 'My Profile', icon: User },
+            { label: 'My Profile', icon: User, onClick: () => setProfileOpen(true) },
             { label: 'Change Password', icon: KeyRound, onClick: () => setPwOpen(true) },
             ...(isSsa ? [{ label: 'Exit to Companies', icon: Building2, onClick: async () => { await setViewAsCompany(null); qc.clear(); navigate(routes.companies); } }] : []),
             'divider' as const,
@@ -160,6 +162,7 @@ export function TopBar() {
           ]}
         />
         <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} />
+        <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
       </div>
     </header>
   );

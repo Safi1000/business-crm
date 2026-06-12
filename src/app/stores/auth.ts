@@ -20,6 +20,8 @@ export interface AuthUser {
   employeeId: string | null;
   /** Super Super Admin: the company they're currently "viewing as" (null = unscoped). */
   viewAsCompany: string | null;
+  /** Personal avatar (URL or small data-URL), shown in the app shell. */
+  avatarUrl: string | null;
 }
 
 interface AuthState {
@@ -35,19 +37,21 @@ interface AuthState {
   changePassword: (newPassword: string) => Promise<void>;
   /** SSA only: enter (companyId) or exit (null) a company's admin view. */
   setViewAsCompany: (companyId: string | null) => Promise<void>;
+  /** Update the signed-in user's own display profile (name / email / avatar). */
+  updateProfile: (patch: { name: string; email: string; avatarUrl: string | null }) => Promise<void>;
 }
 
 /** Load the profile row for a signed-in user and shape it into AuthUser. */
 async function loadUser(id: string, email: string): Promise<AuthUser> {
   const { data } = await supabase
     .from('profiles')
-    .select('full_name, role, company_id, title, permissions, must_change_password, portal_kind, client_id, employee_id, view_as_company')
+    .select('full_name, email, role, company_id, title, permissions, must_change_password, portal_kind, client_id, employee_id, view_as_company, avatar_url')
     .eq('id', id)
     .maybeSingle();
 
   return {
     id,
-    email,
+    email: data?.email ?? email,
     name: data?.full_name ?? email,
     role: (data?.role as AuthRole) ?? 'Ops',
     companyId: data?.company_id ?? null,
@@ -58,6 +62,7 @@ async function loadUser(id: string, email: string): Promise<AuthUser> {
     clientId: data?.client_id ?? null,
     employeeId: data?.employee_id ?? null,
     viewAsCompany: data?.view_as_company ?? null,
+    avatarUrl: data?.avatar_url ?? null,
   };
 }
 
@@ -100,6 +105,17 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     const { error } = await supabase.from('profiles').update({ view_as_company: companyId }).eq('id', u.id);
     if (error) throw error;
     set({ user: { ...u, viewAsCompany: companyId } });
+  },
+
+  updateProfile: async ({ name, email, avatarUrl }) => {
+    const u = get().user;
+    if (!u) return;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ full_name: name.trim() || null, email: email.trim() || null, avatar_url: avatarUrl })
+      .eq('id', u.id);
+    if (error) throw error;
+    set({ user: { ...u, name: name.trim() || email, email: email.trim() || u.email, avatarUrl } });
   },
 }));
 

@@ -106,8 +106,9 @@ export function ClientFormModal({ open, onClose, client, onCreated }: ClientForm
         onCreated?.(created);
       }
       onClose();
-    } catch {
-      toast.error('Could not save. Try again.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not save. Try again.';
+      toast.error(message);
     }
   };
 
