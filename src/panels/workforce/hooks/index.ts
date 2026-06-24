@@ -22,6 +22,9 @@ export function useBranches() {
 export function useDepartments() {
   return useQuery({ queryKey: qk.departments, queryFn: settingsApi.departments });
 }
+export function useManagers() {
+  return useQuery({ queryKey: ['managers'], queryFn: employeesApi.managers });
+}
 
 export function useEmployeeMutations() {
   const qc = useQueryClient();

@@ -18,7 +18,8 @@ export interface Employee {
   department: string;
   branchId: ID;
   branch: string;
-  reportingTo?: string;
+  reportingTo?: string; // profile id of the Super Admin this employee reports to
+  reportingToName?: string; // derived: that Super Admin's name
   joinDate: ISODate;
   shift: 'Morning' | 'Evening' | 'Night';
   status: EmployeeStatus;

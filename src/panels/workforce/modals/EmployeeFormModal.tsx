@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Modal, toast } from '@ds/feedback';
 import { Button, Input, Select, FormField, CollapsibleSection } from '@ds/primitives';
 import { getCountryPack } from '@/config/countryPacks';
-import { useBranches, useDepartments, useEmployeeMutations } from '../hooks';
+import { useBranches, useDepartments, useEmployeeMutations, useManagers } from '../hooks';
 import type { Employee } from '@/types';
 
 const schema = z.object({
@@ -42,6 +42,7 @@ export function EmployeeFormModal({
   const isEdit = !!employee;
   const { data: branches = [] } = useBranches();
   const { data: departments = [] } = useDepartments();
+  const { data: managers = [] } = useManagers();
   const { create, update } = useEmployeeMutations();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -125,7 +126,7 @@ export function EmployeeFormModal({
             <FormField label="Employee Type"><Select options={['Full-time', 'Part-time', 'Contract', 'Intern'].map((t) => ({ value: t, label: t }))} {...register('type')} /></FormField>
             <FormField label="Department" required error={errors.departmentId?.message}><Select placeholder="Select…" options={departments.map((d) => ({ value: d.id, label: d.name }))} {...register('departmentId')} /></FormField>
             <FormField label="Branch" required error={errors.branchId?.message}><Select placeholder="Select…" options={branches.map((b) => ({ value: b.id, label: b.name }))} {...register('branchId')} /></FormField>
-            <FormField label="Reporting To"><Input placeholder="Manager name" {...register('reportingTo')} /></FormField>
+            <FormField label="Reporting To" hint="Super Admin this employee reports to"><Select placeholder="None" options={managers.map((m) => ({ value: m.id, label: m.name }))} {...register('reportingTo')} /></FormField>
             <FormField label="Join Date" required error={errors.joinDate?.message}><Input type="date" {...register('joinDate')} /></FormField>
             <FormField label="Shift"><Select options={['Morning', 'Evening', 'Night'].map((s) => ({ value: s, label: s }))} {...register('shift')} /></FormField>
           </div>

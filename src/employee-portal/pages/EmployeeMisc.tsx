@@ -175,7 +175,7 @@ export function EmployeeProfile() {
         <Card>
           <CardTitle className="mb-4">Employment Info</CardTitle>
           <dl className="space-y-3 text-sm">
-            {[['Employee ID', me?.code], ['Name', me?.name], ['Department', me?.department], ['Branch', me?.branch], ['Manager', me?.reportingTo ?? '—'], ['Join Date', me ? formatDate(me.joinDate) : '—'], ['Base Salary', me ? money(me.baseSalary) : '—']].map(([k, v]) => (
+            {[['Employee ID', me?.code], ['Name', me?.name], ['Department', me?.department], ['Branch', me?.branch], ['Manager', me?.reportingToName ?? '—'], ['Join Date', me ? formatDate(me.joinDate) : '—'], ['Base Salary', me ? money(me.baseSalary) : '—']].map(([k, v]) => (
               <div key={k} className="flex justify-between"><dt className="text-content-muted">{k}</dt><dd className="font-medium text-content">{v || '—'}</dd></div>
             ))}
           </dl>

@@ -13,7 +13,7 @@ export interface EmployeeFilters extends ListParams {
 
 /** Fields that live only on the employee_list view (derived) — never written back. */
 function toInsert(data: Partial<Employee>) {
-  const { id: _i, code: _c, department: _d, branch: _b, docsComplete: _dc, docsCount: _dn, docsRequired: _dr, ...rest } = data;
+  const { id: _i, code: _c, department: _d, branch: _b, reportingToName: _rn, docsComplete: _dc, docsCount: _dn, docsRequired: _dr, ...rest } = data;
   const row = toSnake(rest);
   // Blank optional fields arrive from the form as '' — null them so date/uuid/numeric columns accept them.
   for (const k of Object.keys(row)) if (row[k] === '') row[k] = null;
@@ -43,6 +43,17 @@ export const employeesApi = {
     const { data, count, error } = await q;
     if (error) throw error;
     return { rows: rowsToCamel<Employee>(data), total: count ?? 0, page, pageSize };
+  },
+
+  /** Super Admins of the current company — the people an employee can report to. */
+  async managers(): Promise<{ id: string; name: string }[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('role', 'Super Admin')
+      .order('full_name');
+    if (error) throw error;
+    return (data ?? []).map((p) => ({ id: p.id as string, name: (p.full_name as string) ?? 'Super Admin' }));
   },
 
   async get(id: string): Promise<Employee | undefined> {
