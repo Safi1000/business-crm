@@ -125,6 +125,12 @@ export const financeApi = {
   /** Move money between two accounts: records two transactions + adjusts balances. */
   async wireTransfer(fromBankId: string, toBankId: string, amount: number, reference?: string): Promise<void> {
     const today = new Date().toISOString().slice(0, 10);
+    // Block overdrafts — the source account can't go negative.
+    const { data: src, error: sErr } = await supabase.from('bank_accounts').select('name, balance').eq('id', fromBankId).single();
+    if (sErr) throw sErr;
+    if (amount > Number(src.balance)) {
+      throw new Error(`Insufficient balance in ${src.name}. Available: ${Number(src.balance).toLocaleString()}.`);
+    }
     const { error: tErr } = await supabase.from('bank_transactions').insert([
       { bank_id: fromBankId, date: today, description: 'Wire transfer (out)', type: 'Debit', amount, reference: reference ?? null },
       { bank_id: toBankId, date: today, description: 'Wire transfer (in)', type: 'Credit', amount, reference: reference ?? null },
@@ -193,6 +199,19 @@ export const expensesApi = {
   },
 
   async create(data: Partial<Expense> & { category?: string; vendor?: string }): Promise<Expense> {
+    const amount = data.amount ?? 0;
+    const mode = data.mode ?? 'Cash';
+    // A non-cash expense is paid out of a specific bank account; Cash expenses aren't.
+    const bankId = mode === 'Cash' ? null : data.bankId ?? null;
+
+    if (bankId) {
+      const { data: bank, error: bErr } = await supabase.from('bank_accounts').select('name, balance').eq('id', bankId).single();
+      if (bErr) throw bErr;
+      if (amount > Number(bank.balance)) {
+        throw new Error(`Insufficient balance in ${bank.name}. Available: ${Number(bank.balance).toLocaleString()}.`);
+      }
+    }
+
     const insert = {
       date: data.date,
       category_id: await categoryId(data.category),
@@ -200,13 +219,24 @@ export const expensesApi = {
       project_id: data.projectId ?? null,
       vendor_id: await vendorId(data.vendor),
       description: data.description,
-      amount: data.amount ?? 0,
+      amount,
       currency: data.currency ?? 'PKR',
-      mode: data.mode ?? 'Cash',
+      mode,
+      bank_id: bankId,
       has_receipt: data.hasReceipt ?? false,
     };
     const { data: row, error } = await supabase.from('expenses').insert(insert).select('id').single();
     if (error) throw error;
+
+    // Mirror the spend on the chosen account: a debit transaction + balance decrement.
+    if (bankId) {
+      await supabase.from('bank_transactions').insert({
+        bank_id: bankId, date: data.date, description: `Expense: ${data.description ?? data.category ?? ''}`.trim(), type: 'Debit', amount, currency: insert.currency,
+      });
+      const { data: bank } = await supabase.from('bank_accounts').select('balance').eq('id', bankId).single();
+      if (bank) await supabase.from('bank_accounts').update({ balance: Number(bank.balance) - amount }).eq('id', bankId);
+    }
+
     const { data: full } = await supabase.from('expense_list').select('*').eq('id', row.id).single();
     return rowToCamel<Expense>(full)!;
   },

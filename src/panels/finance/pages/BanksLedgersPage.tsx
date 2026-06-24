@@ -49,12 +49,20 @@ function WireTransferModal({ open, onClose, banks }: { open: boolean; onClose: (
   const [reference, setRef] = useState('');
   const submit = async () => {
     if (!fromBankId || !toBankId || fromBankId === toBankId || !amount) return toast.error('Pick two different accounts and an amount.');
-    await wire.mutateAsync({ fromBankId, toBankId, amount: Number(amount), reference });
-    toast.success('Wire transfer recorded');
-    setAmount(''); setRef('');
-    onClose();
+    const from = banks.find((b) => b.id === fromBankId);
+    if (from && Number(amount) > from.balance) {
+      return toast.error(`Insufficient balance in ${from.name}. Available: ${from.balance.toLocaleString()}.`);
+    }
+    try {
+      await wire.mutateAsync({ fromBankId, toBankId, amount: Number(amount), reference });
+      toast.success('Wire transfer recorded');
+      setAmount(''); setRef('');
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Transfer failed');
+    }
   };
-  const opts = banks.map((b) => ({ value: b.id, label: `${b.name} (${b.type})` }));
+  const opts = banks.map((b) => ({ value: b.id, label: `${b.name} (${b.type}) · ${b.balance.toLocaleString()}` }));
   return (
     <Modal open={open} onClose={onClose} title="Wire Transfer" size="sm"
       footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button loading={wire.isPending} onClick={submit}>Transfer</Button></>}>

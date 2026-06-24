@@ -58,6 +58,13 @@ function netOf(p: Pick<Payslip, 'base' | 'bonus' | 'deductions' | 'statutoryDedu
 }
 
 export const payrollApi = {
+  /** Build/refresh payslips for a month (default current) from marked attendance. Returns the count. */
+  async generate(month?: string): Promise<number> {
+    const { data, error } = await supabase.rpc('generate_payroll', month ? { p_month: month } : {});
+    if (error) throw error;
+    return (data as number) ?? 0;
+  },
+
   async list(filters: { search?: string; branch?: string; shift?: string; status?: string } = {}): Promise<Payslip[]> {
     let q = supabase.from('payslip_list').select('*');
     if (filters.search) q = q.or(`employee_name.ilike.%${filters.search}%,employee_code.ilike.%${filters.search}%`);

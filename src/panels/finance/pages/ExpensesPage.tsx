@@ -11,7 +11,7 @@ import { EmptyState, Modal, toast } from '@ds/feedback';
 import { ProgressBar } from '@ds/data-display';
 import { formatDate } from '@/lib/format';
 import { useUrlFilters } from '@/lib/useUrlFilters';
-import { useExpenses, useExpenseBreakdown, useAddExpense, useVendors, useAddVendor } from '../hooks';
+import { useExpenses, useExpenseBreakdown, useAddExpense, useVendors, useAddVendor, useBanks } from '../hooks';
 import type { Expense } from '@/types';
 
 function VendorsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -37,8 +37,22 @@ const PAGE_SIZE = 25;
 
 function AddExpenseModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const add = useAddExpense();
-  const { register, handleSubmit, reset } = useForm<{ date: string; category: string; description: string; amount: number; mode: Expense['mode'] }>({
-    defaultValues: { date: new Date().toISOString().slice(0, 10), category: 'Office Rent', mode: 'Bank' },
+  const { data: banks = [] } = useBanks();
+  const { register, handleSubmit, reset, watch } = useForm<{ date: string; category: string; description: string; amount: number; mode: Expense['mode']; bankId: string }>({
+    defaultValues: { date: new Date().toISOString().slice(0, 10), category: 'Office Rent', mode: 'Bank', bankId: '' },
+  });
+  const mode = watch('mode');
+  const needsBank = mode !== 'Cash';
+  const submit = handleSubmit(async (v) => {
+    if (needsBank && !v.bankId) return toast.error('Select the bank account this expense is paid from.');
+    try {
+      await add.mutateAsync({ ...v, amount: Number(v.amount), currency: 'PKR', bankId: needsBank ? v.bankId : undefined });
+      toast.success('Expense added');
+      reset();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not add expense');
+    }
   });
   return (
     <Modal
@@ -49,7 +63,7 @@ function AddExpenseModal({ open, onClose }: { open: boolean; onClose: () => void
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button loading={add.isPending} onClick={handleSubmit(async (v) => { await add.mutateAsync({ ...v, amount: Number(v.amount), currency: 'PKR' }); toast.success('Expense added'); reset(); onClose(); })}>Add Expense</Button>
+          <Button loading={add.isPending} onClick={submit}>Add Expense</Button>
         </>
       }
     >
@@ -58,6 +72,11 @@ function AddExpenseModal({ open, onClose }: { open: boolean; onClose: () => void
         <FormField label="Category"><Select options={CATEGORIES.map((c) => ({ value: c, label: c }))} {...register('category')} /></FormField>
         <FormField label="Amount" required><Input type="number" {...register('amount')} /></FormField>
         <FormField label="Mode"><Select options={['Cash', 'Bank', 'Card', 'Cheque'].map((m) => ({ value: m, label: m }))} {...register('mode')} /></FormField>
+        {needsBank && (
+          <FormField label="Paid from account" required className="sm:col-span-2" hint="The expense is deducted from this account's balance.">
+            <Select {...register('bankId')} options={[{ value: '', label: 'Select an account…' }, ...banks.map((b) => ({ value: b.id, label: `${b.name} (${b.type})` }))]} />
+          </FormField>
+        )}
         <FormField label="Description" className="sm:col-span-2"><Textarea rows={2} {...register('description')} /></FormField>
       </div>
     </Modal>

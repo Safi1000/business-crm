@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Wallet, HandCoins, CheckCheck, FileText, X } from 'lucide-react';
+import { Wallet, HandCoins, CheckCheck, FileText, X, RefreshCw } from 'lucide-react';
 import { PageHeader, KpiStrip, FilterBar, useFormatMoney } from '@/shared';
 import { Button, Select, Input, Card, CardTitle, Toggle } from '@ds/primitives';
 import { KPICard, StatusBadge, Avatar } from '@ds/data-display';
@@ -16,7 +16,7 @@ export function PayrollPage() {
   const { values, set, reset, activeCount } = useUrlFilters({ search: '', branch: '', shift: '', status: '' });
   const { data: branches = [] } = useBranches();
   const { data: rows = [], isLoading } = usePayroll({ search: values.search, branch: values.branch, shift: values.shift, status: values.status });
-  const { update, disburseAll } = usePayrollMutations();
+  const { update, disburseAll, generate } = usePayrollMutations();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ bonus: number; deductions: number; paymentMode: Payslip['paymentMode'] } | null>(null);
@@ -54,9 +54,22 @@ export function PayrollPage() {
         title="Payroll"
         description="June 2026 · Pakistan country pack"
         actions={
-          <Button icon={CheckCheck} onClick={async () => { await disburseAll.mutateAsync(); toast.success('All pending payslips disbursed'); }}>
-            Mark All Disbursed
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              icon={RefreshCw}
+              loading={generate.isPending}
+              onClick={async () => {
+                const n = await generate.mutateAsync(undefined);
+                toast.success(n > 0 ? `Payroll generated for ${n} employee${n === 1 ? '' : 's'} from attendance` : 'No active employees to generate payroll for');
+              }}
+            >
+              Generate Payroll
+            </Button>
+            <Button icon={CheckCheck} onClick={async () => { await disburseAll.mutateAsync(); toast.success('All pending payslips disbursed'); }}>
+              Mark All Disbursed
+            </Button>
+          </>
         }
       />
 

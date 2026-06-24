@@ -65,7 +65,8 @@ export function usePayrollMutations() {
     onSuccess: invalidate,
   });
   const disburseAll = useMutation({ mutationFn: () => payrollApi.disburseAll(), onSuccess: invalidate });
-  return { update, disburseAll };
+  const generate = useMutation({ mutationFn: (month?: string) => payrollApi.generate(month), onSuccess: invalidate });
+  return { update, disburseAll, generate };
 }
 
 export function useLeaves() {

@@ -54,6 +54,7 @@ export interface Expense {
   amount: number;
   currency: CurrencyCode;
   mode: ExpenseMode;
+  bankId?: ID;
   vendor?: string;
   hasReceipt: boolean;
 }
