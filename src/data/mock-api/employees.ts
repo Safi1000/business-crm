@@ -14,7 +14,10 @@ export interface EmployeeFilters extends ListParams {
 /** Fields that live only on the employee_list view (derived) — never written back. */
 function toInsert(data: Partial<Employee>) {
   const { id: _i, code: _c, department: _d, branch: _b, docsComplete: _dc, docsCount: _dn, docsRequired: _dr, ...rest } = data;
-  return toSnake(rest);
+  const row = toSnake(rest);
+  // Blank optional fields arrive from the form as '' — null them so date/uuid/numeric columns accept them.
+  for (const k of Object.keys(row)) if (row[k] === '') row[k] = null;
+  return row;
 }
 
 export const employeesApi = {
