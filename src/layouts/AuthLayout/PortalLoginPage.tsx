@@ -40,7 +40,7 @@ export function PortalLoginPage({ title, subtitle, redirectTo, poweredBy, emailL
     <AuthLayout>
       <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-xl">
         <div className="px-8 pt-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 font-display text-2xl font-bold text-white shadow-lg shadow-brand-600/30">T</div>
+          <img src="/logo.png" alt="TechxServe" className="h-10 w-auto mx-auto mb-4" />
           <h1 className="font-display text-xl font-bold text-content">{title}</h1>
           <p className="mt-1 text-sm text-content-muted">{subtitle}</p>
         </div>
@@ -55,7 +55,16 @@ export function PortalLoginPage({ title, subtitle, redirectTo, poweredBy, emailL
           <Button type="submit" fullWidth size="lg" loading={loading} iconRight={ArrowRight}>Sign In</Button>
         </form>
       </div>
-      {poweredBy && <p className="mt-6 text-center text-xs text-content-subtle">Powered by TECHXSERVE Business Platform</p>}
+      {poweredBy && (
+        <div className="mt-6 flex flex-col items-center gap-1 opacity-50">
+          <img src="/logo.png" alt="TechxServe" className="h-4 w-auto" />
+          <div className="flex items-center gap-2 text-xs text-content-subtle">
+            <span>techxserve.com</span>
+            <span>·</span>
+            <span>info@techxserve.com</span>
+          </div>
+        </div>
+      )}
     </AuthLayout>
   );
 }

@@ -54,9 +54,9 @@ export function LoginPage() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 20 }}
-            className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 font-display text-2xl font-bold text-white shadow-lg shadow-brand-600/30"
+            className="mx-auto mb-4"
           >
-            T
+            <img src="/logo.png" alt="TechxServe" className="h-10 w-auto mx-auto" />
           </motion.div>
           <h1 className="font-display text-xl font-bold text-content">Welcome back</h1>
           <p className="mt-1 text-sm text-content-muted">Sign in to the TechxServe Business Platform</p>
@@ -101,6 +101,11 @@ export function LoginPage() {
         <a href={routes.cpLogin} className="font-medium text-content-muted hover:text-brand-600">Client Portal →</a>
         <span className="text-content-subtle">·</span>
         <a href={routes.epLogin} className="font-medium text-content-muted hover:text-brand-600">Employee Portal →</a>
+      </div>
+      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-content-subtle opacity-50">
+        <span>techxserve.com</span>
+        <span>·</span>
+        <span>info@techxserve.com</span>
       </div>
     </AuthLayout>
   );
