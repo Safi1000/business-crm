@@ -56,7 +56,7 @@ export function LoginPage() {
             transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 20 }}
             className="mx-auto mb-4"
           >
-            <img src="/logo.png" alt="TechxServe" className="h-10 w-auto mx-auto" />
+            <img src="/logo.png" alt="TechxServe" className="h-20 w-auto mx-auto" />
           </motion.div>
           <h1 className="font-display text-xl font-bold text-content">Welcome back</h1>
           <p className="mt-1 text-sm text-content-muted">Sign in to the TechxServe Business Platform</p>
@@ -104,7 +104,7 @@ export function LoginPage() {
       </div>
       <div className="mt-6 flex flex-col items-center gap-3">
         <a href="https://techxserve.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
-          <img src="/logo.png" alt="TechxServe" className="h-9 w-auto" />
+          <img src="/logo.png" alt="TechxServe" className="h-[72px] w-auto" />
         </a>
         <p className="text-sm font-bold text-content">Built by TechxServe</p>
         <div className="flex items-center gap-3 text-sm font-semibold">

@@ -40,7 +40,7 @@ export function PortalLoginPage({ title, subtitle, redirectTo, poweredBy, emailL
     <AuthLayout>
       <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-xl">
         <div className="px-8 pt-8 text-center">
-          <img src="/logo.png" alt="TechxServe" className="h-10 w-auto mx-auto mb-4" />
+          <img src="/logo.png" alt="TechxServe" className="h-20 w-auto mx-auto mb-4" />
           <h1 className="font-display text-xl font-bold text-content">{title}</h1>
           <p className="mt-1 text-sm text-content-muted">{subtitle}</p>
         </div>
@@ -58,7 +58,7 @@ export function PortalLoginPage({ title, subtitle, redirectTo, poweredBy, emailL
       {poweredBy && (
         <div className="mt-6 flex flex-col items-center gap-3">
           <a href="https://techxserve.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
-            <img src="/logo.png" alt="TechxServe" className="h-9 w-auto" />
+            <img src="/logo.png" alt="TechxServe" className="h-[72px] w-auto" />
           </a>
           <p className="text-sm font-bold text-content">Built by TechxServe</p>
           <div className="flex items-center gap-3 text-sm font-semibold">
