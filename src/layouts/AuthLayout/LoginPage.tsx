@@ -102,10 +102,22 @@ export function LoginPage() {
         <span className="text-content-subtle">·</span>
         <a href={routes.epLogin} className="font-medium text-content-muted hover:text-brand-600">Employee Portal →</a>
       </div>
-      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-content-subtle opacity-50">
-        <span>techxserve.com</span>
-        <span>·</span>
-        <span>info@techxserve.com</span>
+      <div className="mt-6 flex flex-col items-center gap-3">
+        <a href="https://techxserve.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+          <img src="/logo.png" alt="TechxServe" className="h-9 w-auto" />
+        </a>
+        <p className="text-sm font-bold text-content">Built by TechxServe</p>
+        <div className="flex items-center gap-3 text-sm font-semibold">
+          <a href="https://techxserve.com" target="_blank" rel="noopener noreferrer"
+             className="text-brand-600 hover:underline">
+            techxserve.com
+          </a>
+          <span className="text-content-subtle">·</span>
+          <a href="mailto:info@techxserve.com"
+             className="text-brand-600 hover:underline">
+            info@techxserve.com
+          </a>
+        </div>
       </div>
     </AuthLayout>
   );
