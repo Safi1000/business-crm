@@ -38,7 +38,7 @@ export function EmployeesListPage() {
     const rows = all?.rows ?? [];
     return {
       total: rows.length,
-      active: rows.filter((e) => e.status === 'Inactive').length,
+      active: rows.filter((e) => e.status === 'Active').length,
       onLeave: rows.filter((e) => e.status === 'On Leave').length,
       missingDocs: rows.filter((e) => !e.docsComplete).length,
     };
