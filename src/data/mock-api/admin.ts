@@ -4,7 +4,9 @@ import { rowToCamel, rowsToCamel } from '@/lib/case';
 
 export const usersApi = {
   async list(search?: string): Promise<AppUser[]> {
-    let q = supabase.from('profiles').select('id, full_name, email, title, permissions, role');
+    // The Super Super Admin is platform-level and never belongs to a company's roster,
+    // so it must never appear in any organization's Users & Permissions panel.
+    let q = supabase.from('profiles').select('id, full_name, email, title, permissions, role').neq('role', 'Super Super Admin');
     if (search) q = q.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,title.ilike.%${search}%`);
     const { data, error } = await q.order('full_name');
     if (error) throw error;

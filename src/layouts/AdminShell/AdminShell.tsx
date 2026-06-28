@@ -12,6 +12,7 @@ import { CommandMenu, type CommandGroup } from '@ds/overlays';
 import { routeTransition } from '@ds/motion';
 import { useUIStore } from '@/app/stores/ui';
 import { useAuthStore } from '@/app/stores/auth';
+import { useFeatureAccess } from '@/app/permissions';
 import { ForcedPasswordReset } from '@/shared';
 import { navGroups } from '@/config/nav';
 import { isPhaseActive } from '@/config/phases';
@@ -36,6 +37,7 @@ export function AdminShell() {
   const role = useAuthStore((s) => s.user?.role);
   const viewAsCompany = useAuthStore((s) => s.user?.viewAsCompany);
   const mustChangePassword = useAuthStore((s) => s.user?.mustChangePassword);
+  const canAccess = useFeatureAccess();
 
   // ⌘K / Ctrl+K toggles the command palette anywhere in the shell.
   useEffect(() => {
@@ -63,7 +65,7 @@ export function AdminShell() {
       ...navGroups.map((g) => ({
         heading: g.heading,
         items: g.items
-          .filter((i) => isPhaseActive(i.phase))
+          .filter((i) => isPhaseActive(i.phase) && canAccess(i.feature))
           .map((i) => ({
             id: i.to,
             label: i.label,
@@ -73,7 +75,7 @@ export function AdminShell() {
           })),
       })),
     ],
-    [navigate],
+    [navigate, canAccess],
   );
 
   // Wait for the initial session check so we don't flash the login screen.

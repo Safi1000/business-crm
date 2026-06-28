@@ -8,6 +8,7 @@ import { navGroups, type NavGroup, type NavItem } from '@/config/nav';
 import { isPhaseActive, PhaseBadge } from '@/config/phases';
 import { Flyout } from '@ds/overlays';
 import { useUIStore } from '@/app/stores/ui';
+import { useFeatureAccess } from '@/app/permissions';
 import { settingsApi } from '@/data/mock-api';
 
 function ItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
@@ -117,7 +118,13 @@ function Group({ group, collapsed }: { group: NavGroup; collapsed: boolean }) {
 export function SideBar() {
   const collapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggle = useUIStore((s) => s.toggleSidebar);
+  const canAccess = useFeatureAccess();
   const { data: branding } = useQuery({ queryKey: ['branding'], queryFn: settingsApi.branding });
+
+  // Only show groups/items the signed-in user has permission for.
+  const visibleGroups = navGroups
+    .map((g) => ({ ...g, items: g.items.filter((i) => canAccess(i.feature)) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <aside
@@ -145,7 +152,7 @@ export function SideBar() {
 
       {/* Nav */}
       <nav className="flex-1 space-y-3 overflow-y-auto py-4">
-        {navGroups.map((g) => (
+        {visibleGroups.map((g) => (
           <Group key={g.heading} group={g} collapsed={collapsed} />
         ))}
       </nav>

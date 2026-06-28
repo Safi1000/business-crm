@@ -5,7 +5,16 @@ import { LoginPage, PortalLoginPage } from '@/layouts/AuthLayout';
 import { PlaceholderPage } from '@/dev/PlaceholderPage';
 import { SkeletonTable } from '@ds/feedback';
 import { routes } from '@/config/routes';
-import { navGroups } from '@/config/nav';
+import { navGroups, type Feature } from '@/config/nav';
+import { useFeatureAccess } from '@/app/permissions';
+
+/** Blocks direct-URL access to a page the signed-in user lacks permission for. */
+function FeatureGuard({ feature, children }: { feature?: Feature; children: ReactElement }) {
+  const canAccess = useFeatureAccess();
+  if (!canAccess(feature)) return <Navigate to={routes.dashboard} replace />;
+  return children;
+}
+const guard = (feature: Feature | undefined, el: ReactElement) => <FeatureGuard feature={feature}>{el}</FeatureGuard>;
 
 // Lazy-load each panel so it ships as its own chunk (brief: "lazy-loaded per panel").
 const ComponentsGallery = lazy(() => import('@/dev/ComponentsGallery').then((m) => ({ default: m.ComponentsGallery })));
@@ -97,18 +106,18 @@ const realPages: Record<string, ReactElement> = {
 const navRoutes: RouteObject[] = navGroups.flatMap((g) =>
   g.items.map((item) => ({
     path: item.to,
-    element: realPages[item.to] ?? <PlaceholderPage title={item.label} phase={item.phase} />,
+    element: guard(item.feature, realPages[item.to] ?? <PlaceholderPage title={item.label} phase={item.phase} />),
   })),
 );
 
-// Non-nav detail/form routes.
+// Non-nav detail/form routes — gated by the same feature as their list page.
 const extraRoutes: RouteObject[] = [
-  { path: routes.client(), element: page(<ClientDetailPage />) },
-  { path: routes.invoiceNew, element: page(<InvoiceFormPage />) },
-  { path: routes.invoiceEdit(), element: page(<InvoiceFormPage />) },
-  { path: routes.invoice(), element: page(<InvoiceDetailPage />) },
-  { path: routes.employee(), element: page(<EmployeeDetailPage />) },
-  { path: routes.project(), element: page(<ProjectDetailPage />) },
+  { path: routes.client(), element: guard('Clients', page(<ClientDetailPage />)) },
+  { path: routes.invoiceNew, element: guard('Invoices', page(<InvoiceFormPage />)) },
+  { path: routes.invoiceEdit(), element: guard('Invoices', page(<InvoiceFormPage />)) },
+  { path: routes.invoice(), element: guard('Invoices', page(<InvoiceDetailPage />)) },
+  { path: routes.employee(), element: guard('Workforce', page(<EmployeeDetailPage />)) },
+  { path: routes.project(), element: guard('Projects', page(<ProjectDetailPage />)) },
 ];
 
 const SsaCompaniesPage = lazy(() => import('@panels/ssa').then((m) => ({ default: m.SsaCompaniesPage })));

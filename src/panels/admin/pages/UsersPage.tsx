@@ -6,6 +6,7 @@ import { Button, Input, Select, FormField, Checkbox } from '@ds/primitives';
 import { DataTable, StatusBadge, Avatar, type Column } from '@ds/data-display';
 import { EmptyState, Modal, ConfirmDialog, toast } from '@ds/feedback';
 import { useUrlFilters } from '@/lib/useUrlFilters';
+import { useAuthStore } from '@/app/stores/auth';
 import { useUsers, useUserMutations } from '../hooks';
 import type { AppUser } from '@/types';
 
@@ -49,6 +50,8 @@ export function UsersPage() {
   const { values, set } = useUrlFilters({ search: '' });
   const { data: users = [], isLoading } = useUsers(values.search ?? '');
   const { remove } = useUserMutations();
+  // Only the Super Super Admin may remove a Super Admin; peers can't delete each other.
+  const isSSA = useAuthStore((s) => s.user?.role === 'Super Super Admin');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AppUser | undefined>();
   const [confirmDel, setConfirmDel] = useState<AppUser | null>(null);
@@ -64,7 +67,7 @@ export function UsersPage() {
       render: (u) => (
         <div className="flex justify-end gap-1">
           <Button size="sm" variant="ghost" icon={Pencil} aria-label="Edit" onClick={() => { setEditing(u); setModalOpen(true); }} />
-          <Button size="sm" variant="ghost" icon={Trash2} aria-label="Delete" onClick={() => setConfirmDel(u)} disabled={u.role === 'Super Admin'} />
+          <Button size="sm" variant="ghost" icon={Trash2} aria-label="Delete" onClick={() => setConfirmDel(u)} disabled={u.role === 'Super Admin' && !isSSA} />
         </div>
       ),
     },
