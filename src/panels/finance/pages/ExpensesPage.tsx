@@ -167,7 +167,7 @@ export function ExpensesPage() {
                   <div key={b.category}>
                     <div className="mb-1 flex items-center justify-between text-sm">
                       <span className="text-content-muted">{b.category}</span>
-                      <span className="nums font-medium">{money(b.amount)} <span className="text-content-subtle">({Math.round((b.amount / total) * 100)}%)</span></span>
+                      <span className="nums font-medium">{money(b.amount)} <span className="text-content-subtle">({Math.round((b.amount / maxCat) * 100)}%)</span></span>
                     </div>
                     <ProgressBar value={(b.amount / maxCat) * 100} size="sm" tone="brand" />
                   </div>

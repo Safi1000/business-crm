@@ -46,7 +46,7 @@ export function AttendancePage() {
     return c;
   }, [rows]);
 
-  const allMarked = rows.length > 0 && counts.Unmarked === 0;
+  const allMarked = rows.length > 0 && counts.Present === 0;
 
   return (
     <div>
