@@ -36,7 +36,6 @@ export function LoginPage() {
     setAuthError(null);
     try {
       await signIn(values.email, values.password);
-      // The Super Super Admin manages tenants from the Companies list, not a company dashboard.
       const role = useAuthStore.getState().user?.role;
       navigate(role === 'Super Super Admin' ? routes.companies : routes.dashboard);
     } catch {
@@ -48,20 +47,45 @@ export function LoginPage() {
 
   return (
     <AuthLayout>
-      <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-xl">
-        <div className="px-8 pt-8 text-center">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl"
+      >
+        {/* Branded header */}
+        <div
+          className="relative flex flex-col items-center gap-4 overflow-hidden px-8 py-8 text-center"
+          style={{ background: 'linear-gradient(135deg, rgb(185,28,28) 0%, rgb(220,38,38) 50%, rgb(153,27,27) 100%)' }}
+        >
+          {/* Subtle dot grid overlay */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)',
+              backgroundSize: '18px 18px',
+            }}
+          />
+          {/* Glow blob */}
+          <div
+            className="pointer-events-none absolute -top-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full blur-2xl"
+            style={{ background: 'rgba(255,255,255,0.1)' }}
+          />
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 20 }}
-            className="mx-auto mb-4"
+            transition={{ delay: 0.15, type: 'spring', stiffness: 280, damping: 22 }}
+            className="relative"
           >
-            <img src="/logo.png" alt="TechxServe" className="h-20 w-auto mx-auto" />
+            <img src="/logo.png" alt="TechxServe" className="h-20 w-auto brightness-0 invert" />
           </motion.div>
-          <h1 className="font-display text-xl font-bold text-content">Welcome back</h1>
-          <p className="mt-1 text-sm text-content-muted">Sign in to the TechxServe Business Platform</p>
+          <div className="relative">
+            <h1 className="font-display text-xl font-bold text-white">Welcome back</h1>
+            <p className="mt-1 text-sm text-white/70">TechxServe Business Platform</p>
+          </div>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-8">
           <FormField label="Email" htmlFor="email" error={errors.email?.message}>
             <Input id="email" icon={Mail} placeholder="you@company.com" invalid={!!errors.email} {...register('email')} />
@@ -96,14 +120,22 @@ export function LoginPage() {
             Sign In
           </Button>
         </form>
-      </div>
-      <div className="mt-6 flex items-center justify-center gap-4 text-xs">
-        <a href={routes.cpLogin} className="font-medium text-content-muted hover:text-brand-600">Client Portal →</a>
-        <span className="text-content-subtle">·</span>
-        <a href={routes.epLogin} className="font-medium text-content-muted hover:text-brand-600">Employee Portal →</a>
-      </div>
+
+        {/* Portal links */}
+        <div className="flex items-center justify-center gap-4 border-t border-line px-8 py-4 text-xs">
+          <a href={routes.cpLogin} className="font-medium text-content-muted hover:text-brand-600 transition-colors">
+            Client Portal →
+          </a>
+          <span className="text-content-subtle">·</span>
+          <a href={routes.epLogin} className="font-medium text-content-muted hover:text-brand-600 transition-colors">
+            Employee Portal →
+          </a>
+        </div>
+      </motion.div>
+
+      {/* TechxServe attribution */}
       <div className="mt-6 flex flex-col items-center gap-3">
-        <a href="https://techxserve.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+        <a href="https://techxserve.com" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-80">
           <img src="/logo.png" alt="TechxServe" className="h-[72px] w-auto" />
         </a>
         <p className="text-sm font-bold text-content">Built by TechxServe</p>
@@ -113,8 +145,7 @@ export function LoginPage() {
             techxserve.com
           </a>
           <span className="text-content-subtle">·</span>
-          <a href="mailto:info@techxserve.com"
-             className="text-brand-600 hover:underline">
+          <a href="mailto:info@techxserve.com" className="text-brand-600 hover:underline">
             info@techxserve.com
           </a>
         </div>
