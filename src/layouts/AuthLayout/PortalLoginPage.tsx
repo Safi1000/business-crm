@@ -72,30 +72,30 @@ export function PortalLoginPage({ title, subtitle, redirectTo, poweredBy, emailL
             T
           </div>
           <div>
-            <p className="text-lg font-bold leading-none tracking-tight">TechxServe</p>
-            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-red-300/60">Business Platform</p>
+            <p className="text-lg font-bold leading-none tracking-tight" style={{ color: 'white' }}>TechxServe</p>
+            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.45)' }}>Business Platform</p>
           </div>
         </div>
 
         {/* Body copy */}
         <div className="relative space-y-6">
-          <h2 className="font-display text-[28px] font-bold leading-tight tracking-tight">
+          <h2 className="font-display text-[28px] font-bold leading-tight tracking-tight" style={{ color: 'white' }}>
             {title}
           </h2>
-          <p className="max-w-sm text-[14px] leading-relaxed text-red-100/60">
+          <p className="max-w-sm text-[14px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
             {subtitle}
           </p>
           <div className="flex flex-col gap-3">
             {['Secure, role-based access', 'Real-time project & account visibility', 'Built for teams that move fast'].map((f) => (
               <div key={f} className="flex items-center gap-3">
-                <div className="h-1.5 w-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                <span className="text-sm text-red-100/75">{f}</span>
+                <div className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: 'rgba(255,255,255,0.5)' }} />
+                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{f}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="relative text-[12px] text-red-950">TechxServe Business Platform</p>
+        <p className="relative text-[12px]" style={{ color: 'rgba(255,255,255,0.25)' }}>TechxServe Business Platform</p>
       </div>
 
       {/* ── Form panel ── */}

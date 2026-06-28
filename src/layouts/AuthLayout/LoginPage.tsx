@@ -87,19 +87,19 @@ export function LoginPage() {
             T
           </div>
           <div>
-            <p className="text-lg font-bold leading-none tracking-tight">TechxServe</p>
-            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-red-300/60">Business Platform</p>
+            <p className="text-lg font-bold leading-none tracking-tight" style={{ color: 'white' }}>TechxServe</p>
+            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.45)' }}>Business Platform</p>
           </div>
         </div>
 
         {/* Body copy */}
         <div className="relative space-y-7">
-          <h2 className="font-display text-[30px] font-bold leading-tight tracking-tight">
+          <h2 className="font-display text-[30px] font-bold leading-tight tracking-tight" style={{ color: 'white' }}>
             One platform.<br />
-            <span className="text-red-300">Every team. Every workflow.</span>
+            <span style={{ color: 'rgba(255,255,255,0.65)' }}>Every team. Every workflow.</span>
           </h2>
 
-          <p className="max-w-sm text-[14px] leading-relaxed text-red-100/60">
+          <p className="max-w-sm text-[14px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
             A complete multi-portal business OS — Admin, Client, and Employee portals in one unified codebase. Built for businesses that refuse to be held back.
           </p>
 
@@ -112,13 +112,13 @@ export function LoginPage() {
                 >
                   <Icon className="h-3.5 w-3.5 text-red-300" />
                 </div>
-                <span className="text-sm text-red-100/75">{label}</span>
+                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="relative text-[12px] text-red-950">TechxServe Business Platform v1.0</p>
+        <p className="relative text-[12px]" style={{ color: 'rgba(255,255,255,0.25)' }}>TechxServe Business Platform v1.0</p>
       </div>
 
       {/* ── Form panel ── */}
