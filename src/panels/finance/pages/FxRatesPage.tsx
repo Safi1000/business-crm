@@ -15,7 +15,8 @@ const CURRENCIES: string[] = ['USD', 'EUR', 'GBP', 'AED', 'SAR', 'CNY', 'JPY', '
 
 export function FxRatesPage() {
   const qc = useQueryClient();
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(todayStr);
   const { data: rates = [], isLoading } = useQuery({ queryKey: qk.fx, queryFn: financeApi.fx });
   const { data: company } = useQuery({ queryKey: ['company-profile'], queryFn: settingsApi.company });
   const base = (company?.presentationCurrency ?? 'PKR') as string;
@@ -45,10 +46,24 @@ export function FxRatesPage() {
   };
 
   const saveOverride = async () => {
-    if (!override || !override.rate) return;
+    if (!override) return;
+    // Validate date and rate before saving (was previously unvalidated).
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) {
+      toast.error('Enter a valid date');
+      return;
+    }
+    if (date > todayStr) {
+      toast.error('Date cannot be in the future');
+      return;
+    }
+    const rate = Number(override.rate);
+    if (!override.rate || !Number.isFinite(rate) || rate <= 0) {
+      toast.error('Enter a rate greater than zero');
+      return;
+    }
     setSaving(true);
     try {
-      await financeApi.fxOverride(base, override.quote, Number(override.rate), date);
+      await financeApi.fxOverride(base, override.quote, rate, date);
       await qc.invalidateQueries({ queryKey: qk.fx });
       toast.success('Rate overridden');
       setOverride(null);
@@ -105,7 +120,7 @@ export function FxRatesPage() {
       <Card className="mb-4" padding="sm">
         <div className="flex items-center gap-3">
           <span className="text-sm text-content-muted">As of</span>
-          <Input type="date" sizeVariant="sm" value={date} onChange={(e) => setDate(e.target.value)} className="w-40" />
+          <Input type="date" sizeVariant="sm" max={todayStr} value={date} onChange={(e) => setDate(e.target.value)} className="w-40" />
           <span className="text-2xs text-content-subtle">Base currency is your presentation currency ({base}). Rates show how many of the quote currency equal 1 {base}.</span>
         </div>
       </Card>

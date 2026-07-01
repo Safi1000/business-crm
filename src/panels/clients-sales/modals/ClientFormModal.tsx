@@ -5,24 +5,25 @@ import { z } from 'zod';
 import { Modal, toast } from '@ds/feedback';
 import { Button, Input, Select, Textarea, FormField, CollapsibleSection } from '@ds/primitives';
 import { getCountryPack } from '@/config/countryPacks';
+import { labelText, emailOptional, phoneField, numberField, freeText, strictOptionalText } from '@/lib/validation';
 import { useClientMutations } from '../hooks/useClients';
 import type { Client } from '@/types';
 
 const schema = z.object({
-  name: z.string().min(1, 'Client name is required'),
+  name: labelText('Client name'),
   type: z.enum(['Business', 'Individual']),
-  industry: z.string().min(1, 'Industry is required'),
+  industry: labelText('Industry'),
   country: z.string().min(1),
-  email: z.string().email('Enter a valid email').or(z.literal('')),
-  phone: z.string().optional(),
-  taxId: z.string().optional(),
-  strn: z.string().optional(),
+  email: emailOptional,
+  phone: phoneField(),
+  taxId: strictOptionalText,
+  strn: strictOptionalText,
   filerStatus: z.enum(['Filer', 'Non-Filer']).optional(),
-  withholdingRate: z.coerce.number().min(0).max(100).optional(),
+  withholdingRate: numberField({ min: 0, max: 100, label: 'Withholding rate' }).optional(),
   currency: z.enum(['PKR', 'USD', 'EUR', 'GBP', 'AED']),
-  billingAddress: z.string().optional(),
-  paymentTermsDays: z.coerce.number().min(0),
-  creditLimit: z.coerce.number().min(0).optional(),
+  billingAddress: freeText,
+  paymentTermsDays: numberField({ min: 0, label: 'Payment terms' }),
+  creditLimit: numberField({ min: 0, label: 'Credit limit' }).optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -48,6 +49,7 @@ export function ClientFormModal({ open, onClose, client, onCreated }: ClientForm
     formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    mode: 'onChange',
     defaultValues: {
       type: 'Business',
       country: 'Pakistan',
@@ -117,6 +119,7 @@ export function ClientFormModal({ open, onClose, client, onCreated }: ClientForm
     formRef.current?.classList.remove('animate-shake');
     void formRef.current?.offsetWidth;
     formRef.current?.classList.add('animate-shake');
+    toast.error('Please fix the highlighted fields before saving.');
   };
 
   const handleClose = () => {

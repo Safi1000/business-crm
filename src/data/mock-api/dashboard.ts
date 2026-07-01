@@ -5,6 +5,8 @@ export interface DashboardAlert {
   id: string;
   message: string;
   tone: 'danger' | 'warning';
+  /** Optional destination for this alert's "View" link (e.g. "/workforce/payroll"). */
+  href?: string;
 }
 
 export interface DashboardData {

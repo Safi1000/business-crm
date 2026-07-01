@@ -60,6 +60,45 @@ export const financeApi = {
     if (error) throw error;
     return rowsToCamel<Cheque>(data);
   },
+  /**
+   * Change a cheque's status and reflect the cash impact on its bank account.
+   * A cheque only moves real money when it *clears*: an Incoming cheque credits
+   * the account on clearing; an Outgoing cheque debits it. Un-clearing a cleared
+   * cheque (e.g. marking it Bounced) reverses that movement.
+   */
+  async setChequeStatus(id: string, status: Cheque['status']): Promise<void> {
+    const { data: cur, error: e0 } = await supabase
+      .from('cheques')
+      .select('type, amount, currency, bank_id, status')
+      .eq('id', id)
+      .single();
+    if (e0) throw e0;
+
+    const { error } = await supabase.from('cheques').update({ status }).eq('id', id);
+    if (error) throw error;
+
+    const bankId = cur.bank_id as string | null;
+    if (!bankId) return;
+    const amount = Number(cur.amount);
+    const sign = cur.type === 'Incoming' ? 1 : -1; // incoming credits, outgoing debits
+    const wasCleared = cur.status === 'Cleared';
+    const nowCleared = status === 'Cleared';
+    if (wasCleared === nowCleared) return; // no change to cleared cash
+
+    const delta = nowCleared ? sign * amount : -sign * amount;
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: tErr } = await supabase.from('bank_transactions').insert({
+      bank_id: bankId,
+      date: today,
+      description: nowCleared ? 'Cheque cleared' : 'Cheque reversed',
+      type: delta >= 0 ? 'Credit' : 'Debit',
+      amount,
+      currency: (cur.currency as string) ?? 'PKR',
+    });
+    if (tErr) throw tErr;
+    const { data: bank } = await supabase.from('bank_accounts').select('balance').eq('id', bankId).single();
+    if (bank) await supabase.from('bank_accounts').update({ balance: Number(bank.balance) + delta }).eq('id', bankId);
+  },
   async transactions(bankId?: string): Promise<Transaction[]> {
     let q = supabase.from('bank_transactions').select('*').order('date', { ascending: false });
     if (bankId) q = q.eq('bank_id', bankId);

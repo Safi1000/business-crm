@@ -5,28 +5,29 @@ import { z } from 'zod';
 import { Modal, toast } from '@ds/feedback';
 import { Button, Input, Select, FormField, CollapsibleSection } from '@ds/primitives';
 import { getCountryPack } from '@/config/countryPacks';
+import { personName, emailOptional, phoneField, cnicField, dateField, numberField, freeText, strictOptionalText } from '@/lib/validation';
 import { useBranches, useDepartments, useEmployeeMutations, useManagers } from '../hooks';
 import type { Employee } from '@/types';
 
 const schema = z.object({
-  name: z.string().min(1, 'Full name is required'),
-  email: z.string().email('Enter a valid email').or(z.literal('')),
-  phone: z.string().optional(),
-  dob: z.string().optional(),
+  name: personName('Full name'),
+  email: emailOptional,
+  phone: phoneField(),
+  dob: dateField(false, 'Date of birth'),
   country: z.string().min(1),
-  address: z.string().optional(),
+  address: freeText,
   type: z.enum(['Full-time', 'Part-time', 'Contract', 'Intern']),
   departmentId: z.string().min(1, 'Department is required'),
   branchId: z.string().min(1, 'Branch is required'),
   reportingTo: z.string().optional(),
-  joinDate: z.string().min(1, 'Join date is required'),
+  joinDate: dateField(true, 'Join date'),
   shift: z.enum(['Morning', 'Evening', 'Night']),
-  baseSalary: z.coerce.number().min(0, 'Salary must be ≥ 0'),
+  baseSalary: numberField({ min: 0, label: 'Salary' }),
   currency: z.enum(['PKR', 'USD', 'EUR', 'GBP', 'AED']),
-  bankName: z.string().optional(),
-  iban: z.string().optional(),
-  cnic: z.string().optional(),
-  eobiNo: z.string().optional(),
+  bankName: strictOptionalText,
+  iban: strictOptionalText,
+  cnic: cnicField(),
+  eobiNo: strictOptionalText,
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -48,6 +49,7 @@ export function EmployeeFormModal({
 
   const { register, handleSubmit, reset, watch, formState: { errors, isDirty } } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    mode: 'onChange',
     defaultValues: { country: 'Pakistan', type: 'Full-time', shift: 'Morning', currency: 'PKR', baseSalary: 0, name: '', email: '', departmentId: '', branchId: '', joinDate: new Date().toISOString().slice(0, 10) },
   });
 
@@ -86,6 +88,7 @@ export function EmployeeFormModal({
     formRef.current?.classList.remove('animate-shake');
     void formRef.current?.offsetWidth;
     formRef.current?.classList.add('animate-shake');
+    toast.error('Please fix the highlighted fields before saving.');
   };
 
   const handleClose = () => {
@@ -115,8 +118,8 @@ export function EmployeeFormModal({
               <Input invalid={!!errors.name} {...register('name')} />
             </FormField>
             <FormField label="Email" error={errors.email?.message}><Input type="email" invalid={!!errors.email} {...register('email')} /></FormField>
-            <FormField label="Phone"><Input {...register('phone')} /></FormField>
-            <FormField label="Date of Birth"><Input type="date" {...register('dob')} /></FormField>
+            <FormField label="Phone" error={errors.phone?.message}><Input invalid={!!errors.phone} {...register('phone')} /></FormField>
+            <FormField label="Date of Birth" error={errors.dob?.message}><Input type="date" invalid={!!errors.dob} {...register('dob')} /></FormField>
             <FormField label="Country"><Select options={[{ value: 'Pakistan', label: 'Pakistan' }]} {...register('country')} /></FormField>
           </div>
         </CollapsibleSection>
@@ -137,18 +140,21 @@ export function EmployeeFormModal({
             <FormField label="Base Salary" required error={errors.baseSalary?.message}><Input type="number" invalid={!!errors.baseSalary} {...register('baseSalary')} /></FormField>
             <FormField label="Currency"><Select options={['PKR', 'USD', 'EUR', 'GBP', 'AED'].map((c) => ({ value: c, label: c }))} {...register('currency')} /></FormField>
             <FormField label="Per-day Salary (auto)" hint="Base ÷ 26 working days"><Input value={perDay} disabled readOnly /></FormField>
-            <FormField label="Bank Name"><Input placeholder="Meezan Bank" {...register('bankName')} /></FormField>
-            <FormField label="IBAN" className="sm:col-span-2"><Input placeholder="PK..." {...register('iban')} /></FormField>
+            <FormField label="Bank Name" error={errors.bankName?.message}><Input placeholder="Meezan Bank" invalid={!!errors.bankName} {...register('bankName')} /></FormField>
+            <FormField label="IBAN" error={errors.iban?.message} className="sm:col-span-2"><Input placeholder="PK..." invalid={!!errors.iban} {...register('iban')} /></FormField>
           </div>
         </CollapsibleSection>
 
         <CollapsibleSection title={`Statutory IDs — ${pack.country}`}>
           <div className="grid gap-4 sm:grid-cols-2">
-            {pack.employeeFields.map((f) => (
-              <FormField key={f.name} label={f.label}>
-                <Input placeholder={f.placeholder} {...register(f.name as keyof FormValues)} />
-              </FormField>
-            ))}
+            {pack.employeeFields.map((f) => {
+              const err = errors[f.name as keyof FormValues]?.message as string | undefined;
+              return (
+                <FormField key={f.name} label={f.label} error={err}>
+                  <Input placeholder={f.placeholder} invalid={!!err} {...register(f.name as keyof FormValues)} />
+                </FormField>
+              );
+            })}
           </div>
         </CollapsibleSection>
       </form>

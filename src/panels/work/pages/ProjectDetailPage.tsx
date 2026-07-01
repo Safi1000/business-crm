@@ -83,7 +83,7 @@ export function ProjectDetailPage() {
       <Tabs items={tabs} value={tab} onChange={setTab} className="mb-6" />
 
       {tab === 'board' && (tasks.length === 0 ? <EmptyState icon={Plus} title="No tasks yet" description="Add the first task to this project." action={<Button icon={Plus} onClick={() => setCreateOpen(true)}>New Task</Button>} /> : <TaskBoard tasks={tasks} onOpen={setOpenTask} onStatusChange={onStatusChange} />)}
-      {tab === 'tasks' && <DataTable data={tasks} columns={taskCols} rowKey={(t) => t.id} onRowClick={(t) => setOpenTask(t)} empty={<EmptyState icon={Plus} title="No tasks" size="sm" />} />}
+      {tab === 'tasks' && <DataTable data={tasks} columns={taskCols} rowKey={(t) => t.id} onRowClick={(t) => setOpenTask(t)} empty={<EmptyState icon={Plus} title="No tasks yet" description="Add the first task for this project." action={<Button icon={Plus} onClick={() => setCreateOpen(true)}>Create Task</Button>} />} />}
 
       {tab === 'team' && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -127,7 +127,7 @@ export function ProjectDetailPage() {
       )}
 
       <TaskDetailModal task={openTask} onClose={() => setOpenTask(null)} />
-      <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} defaultProjectId={id} lockProject />
       {project && <CreateProjectModal open={editOpen} onClose={() => setEditOpen(false)} project={project} />}
     </div>
   );

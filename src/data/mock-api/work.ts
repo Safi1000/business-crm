@@ -149,8 +149,11 @@ export const tasksApi = {
   },
 
   async create(data: Partial<Task>): Promise<Task> {
+    // Guard against blank / whitespace-only titles reaching the DB (BUG-08).
+    const title = (data.title ?? '').trim();
+    if (!title) throw new Error('Task name is required');
     const insert = {
-      title: data.title ?? 'New Task',
+      title,
       description: data.description,
       project_id: data.projectId ?? null,
       assignees: data.assignees ?? [],

@@ -27,11 +27,17 @@ export function useInvoiceMutations() {
     },
   });
   const recordPayment = useMutation({
-    mutationFn: ({ id, payment }: { id: string; payment: Omit<Payment, 'id'> }) =>
-      invoicesApi.recordPayment(id, payment),
+    mutationFn: ({ id, payment, bankId, chequeNumber }: { id: string; payment: Omit<Payment, 'id'>; bankId?: string; chequeNumber?: string }) =>
+      invoicesApi.recordPayment(id, payment, { bankId, chequeNumber }),
     onSuccess: (_d, v) => {
       invalidate();
       qc.invalidateQueries({ queryKey: qk.invoice(v.id) });
+      // Revenue changes cash — refresh bank balances, cheques and the dashboard (BUG-09).
+      qc.invalidateQueries({ queryKey: qk.banks });
+      qc.invalidateQueries({ queryKey: qk.cheques });
+      qc.invalidateQueries({ queryKey: qk.dashboard });
+      qc.invalidateQueries({ queryKey: qk.receivables });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
     },
   });
   const setStatus = useMutation({

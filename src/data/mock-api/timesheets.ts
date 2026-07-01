@@ -25,10 +25,12 @@ export interface MyTimesheet {
 }
 
 export const timesheetsApi = {
-  /** Admin: every timesheet with employee + total hours. */
-  async adminList(status?: string): Promise<TimesheetSummary[]> {
+  /** Admin: every timesheet with employee + total hours. Supports date-range filtering (BUG-05). */
+  async adminList(filters: { status?: string; from?: string; to?: string } = {}): Promise<TimesheetSummary[]> {
     let q = supabase.from('timesheet_list').select('*').order('week_start', { ascending: false });
-    if (status) q = q.eq('status', status);
+    if (filters.status) q = q.eq('status', filters.status);
+    if (filters.from) q = q.gte('week_start', filters.from);
+    if (filters.to) q = q.lte('week_start', filters.to);
     const { data, error } = await q;
     if (error) throw error;
     return (data ?? []).map((t) => ({

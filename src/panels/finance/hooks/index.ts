@@ -1,13 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { financeApi, expensesApi, type ExpenseFilters } from '@/data/mock-api';
 import { qk } from '@/data/query-keys';
-import type { BankAccount, Expense } from '@/types';
+import type { BankAccount, Cheque, Expense } from '@/types';
 
 export function useBanks() {
   return useQuery({ queryKey: qk.banks, queryFn: financeApi.banks });
 }
 export function useCheques() {
   return useQuery({ queryKey: qk.cheques, queryFn: financeApi.cheques });
+}
+export function useChequeMutations() {
+  const qc = useQueryClient();
+  const setStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: Cheque['status'] }) => financeApi.setChequeStatus(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.cheques });
+      qc.invalidateQueries({ queryKey: qk.banks });
+      qc.invalidateQueries({ queryKey: qk.dashboard });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+    },
+  });
+  return { setStatus };
 }
 export function useReceivables() {
   return useQuery({ queryKey: qk.receivables, queryFn: financeApi.receivables });

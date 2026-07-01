@@ -8,6 +8,7 @@ import {
   type EmployeeFilters,
 } from '@/data/mock-api';
 import { qk } from '@/data/query-keys';
+import type { AttendanceSnapshot } from '@/data/mock-api/workforce';
 import type { AttendanceMark, Employee, Payslip } from '@/types';
 
 export function useEmployees(filters: EmployeeFilters) {
@@ -37,7 +38,30 @@ export function useEmployeeMutations() {
       qc.invalidateQueries({ queryKey: qk.employee(v.id) });
     },
   });
-  return { create, update };
+  const remove = useMutation({
+    mutationFn: (id: string) => employeesApi.remove(id),
+    onSuccess: (_d, id) => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: qk.employee(id) });
+    },
+  });
+  return { create, update, remove };
+}
+
+export function useEmployeeDocuments(id: string) {
+  return useQuery({ queryKey: ['employee-docs', id], queryFn: () => employeesApi.documents(id), enabled: !!id });
+}
+export function useEmployeeDocMutations(id: string) {
+  const qc = useQueryClient();
+  const upload = useMutation({
+    mutationFn: ({ docType, file, folder }: { docType: string; file: File; folder: string }) => employeesApi.uploadDocument(id, docType, file, folder),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employee-docs', id] });
+      qc.invalidateQueries({ queryKey: qk.employee(id) });
+      qc.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+  return { upload };
 }
 
 export function useAttendanceToday(filters: Parameters<typeof attendanceApi.today>[0]) {
@@ -47,11 +71,12 @@ export function useAttendanceMutations() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ['attendance'] });
   const mark = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: AttendanceMark }) => attendanceApi.mark(id, status),
+    mutationFn: ({ id, status, date }: { id: string; status: AttendanceMark; date?: string }) => attendanceApi.mark(id, status, date),
     onSuccess: invalidate,
   });
-  const markAll = useMutation({ mutationFn: (ids: string[]) => attendanceApi.markAllPresent(ids), onSuccess: invalidate });
-  return { mark, markAll };
+  const markAll = useMutation({ mutationFn: ({ ids, date }: { ids: string[]; date?: string }) => attendanceApi.markAllPresent(ids, date), onSuccess: invalidate });
+  const revert = useMutation({ mutationFn: ({ snapshot, date }: { snapshot: AttendanceSnapshot[]; date?: string }) => attendanceApi.revert(snapshot, date), onSuccess: invalidate });
+  return { mark, markAll, revert };
 }
 
 export function usePayroll(filters: Parameters<typeof payrollApi.list>[0]) {

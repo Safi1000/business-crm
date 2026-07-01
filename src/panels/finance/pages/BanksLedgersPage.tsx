@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Plus, Banknote, Landmark, Send, Download, Coins, Wallet, ArrowLeftRight } from 'lucide-react';
+import { Plus, Banknote, Landmark, Send, Download, Coins, Wallet, ArrowLeftRight, MoreHorizontal, CheckCircle2, XCircle, Send as SendIcon, Clock } from 'lucide-react';
 import { PageHeader, KpiStrip, useFormatMoney } from '@/shared';
 import { exportToXlsx } from '@/lib/export';
 import { Button, Tabs, Input, Select, FormField, type TabItem } from '@ds/primitives';
 import { KPICard, DataTable, StatusBadge, type Column } from '@ds/data-display';
 import { EmptyState, Modal, toast } from '@ds/feedback';
+import { DropdownMenu } from '@ds/overlays';
 import { formatDate } from '@/lib/format';
-import { useBanks, useCheques, useReceivables, useVendors, useAddBank, useWireTransfer, useTransactions } from '../hooks';
+import { useBanks, useCheques, useReceivables, useVendors, useAddBank, useWireTransfer, useTransactions, useChequeMutations } from '../hooks';
 import { routes } from '@/config/routes';
 import type { BankAccount, Cheque, Vendor } from '@/types';
 import type { Receivable } from '@/data/mock-api';
@@ -114,6 +115,22 @@ export function BanksLedgersPage() {
   const [logOpen, setLogOpen] = useState(false);
   const { data: banks = [], isLoading } = useBanks();
   const { data: cheques = [] } = useCheques();
+  const { setStatus: setChequeStatus } = useChequeMutations();
+
+  const CHEQUE_STATUS_ACTIONS: { status: Cheque['status']; label: string; icon: typeof CheckCircle2; danger?: boolean }[] = [
+    { status: 'Cleared', label: 'Mark Cleared', icon: CheckCircle2 },
+    { status: 'Bounced', label: 'Mark Bounced', icon: XCircle, danger: true },
+    { status: 'In Transit', label: 'Mark In Transit', icon: SendIcon },
+    { status: 'Pending', label: 'Mark Pending', icon: Clock },
+  ];
+  const changeChequeStatus = async (c: Cheque, status: Cheque['status']) => {
+    try {
+      await setChequeStatus.mutateAsync({ id: c.id, status });
+      toast.success(`Cheque ${c.number} marked ${status}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not update cheque. Try again.');
+    }
+  };
   const { data: receivables = [] } = useReceivables();
   const { data: vendors = [] } = useVendors();
 
@@ -142,6 +159,19 @@ export function BanksLedgersPage() {
     { key: 'amount', header: 'Amount', align: 'right', render: (c) => <span className="nums">{money(c.amount)}</span> },
     { key: 'linked', header: 'Linked', render: (c) => <span className="nums text-content-muted">{c.linkedTo ?? '—'}</span> },
     { key: 'status', header: 'Status', render: (c) => <StatusBadge status={c.status} /> },
+    {
+      key: 'actions', header: '', align: 'right',
+      render: (c) => (
+        <div onClick={(ev) => ev.stopPropagation()}>
+          <DropdownMenu
+            trigger={<Button size="sm" variant="ghost" icon={MoreHorizontal} aria-label="Change status" />}
+            items={CHEQUE_STATUS_ACTIONS.filter((a) => a.status !== c.status).map((a) => ({
+              label: a.label, icon: a.icon, danger: a.danger, onClick: () => changeChequeStatus(c, a.status),
+            }))}
+          />
+        </div>
+      ),
+    },
   ];
 
   const receivableCols: Column<Receivable>[] = [

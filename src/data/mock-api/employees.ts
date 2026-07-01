@@ -73,4 +73,47 @@ export const employeesApi = {
     if (error) throw error;
     return (await employeesApi.get(id))!;
   },
+
+  /**
+   * Soft delete (BUG-02): employees have linked attendance/payroll/timesheet
+   * rows, so a hard delete would violate foreign keys. We mark the record
+   * Inactive instead — it drops out of Active views/counts but history is kept.
+   */
+  async remove(id: string): Promise<void> {
+    const { error } = await supabase.from('employees').update({ status: 'Inactive' }).eq('id', id);
+    if (error) throw error;
+  },
+
+  /** BUG-10: which document types are required vs uploaded for this employee. */
+  async documents(employeeId: string): Promise<EmployeeDocStatus> {
+    const { data, error } = await supabase.rpc('employee_documents_status', { p_employee_id: employeeId });
+    if (error) throw error;
+    const d = (data ?? {}) as Partial<EmployeeDocStatus>;
+    return { required: d.required ?? [], uploaded: d.uploaded ?? [], missing: d.missing ?? [] };
+  },
+
+  /** BUG-10: upload one required document (via the Google Drive edge function) and record it. */
+  async uploadDocument(employeeId: string, docType: string, file: File, folder: string): Promise<void> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('category', 'employee-docs');
+    form.append('folder', folder);
+    const { data: res, error: fnErr } = await supabase.functions.invoke('gdrive-upload', { body: form });
+    if (fnErr) throw fnErr;
+    if ((res as { error?: string }).error) throw new Error((res as { error: string }).error);
+    const r = res as { drive_file_id: string; drive_view_url: string };
+    const { error } = await supabase.from('employee_documents').insert({
+      employee_id: employeeId,
+      doc_type: docType,
+      drive_file_id: r.drive_file_id,
+      drive_view_url: r.drive_view_url,
+    });
+    if (error) throw error;
+  },
 };
+
+export interface EmployeeDocStatus {
+  required: string[];
+  uploaded: string[];
+  missing: string[];
+}

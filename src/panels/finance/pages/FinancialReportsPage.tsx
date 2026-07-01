@@ -30,10 +30,18 @@ export function FinancialReportsPage() {
     return order.map((type) => ({ type, items: accounts.filter((a) => a.type === type) })).filter((g) => g.items.length);
   }, [accounts]);
 
+  // Period filter for the P&L (BUG-05). '' = all months.
+  const [period, setPeriod] = useState('');
+  const monthOptions = useMemo(
+    () => [{ value: '', label: 'All months' }, ...cashflow.map((m) => ({ value: m.month, label: m.month }))],
+    [cashflow],
+  );
+
   const pl = useMemo<PLRow[]>(() => {
-    const revenue = cashflow.reduce((s, m) => s + m.revenue, 0);
-    const payroll = cashflow.reduce((s, m) => s + m.payroll, 0);
-    const expenses = cashflow.reduce((s, m) => s + m.expenses, 0);
+    const months = period ? cashflow.filter((m) => m.month === period) : cashflow;
+    const revenue = months.reduce((s, m) => s + m.revenue, 0);
+    const payroll = months.reduce((s, m) => s + m.payroll, 0);
+    const expenses = months.reduce((s, m) => s + m.expenses, 0);
     const cos = Math.round(revenue * 0.35);
     const grossProfit = revenue - cos;
     const opProfit = grossProfit - payroll - expenses;
@@ -53,7 +61,7 @@ export function FinancialReportsPage() {
       { label: 'Taxes', value: -taxes, indent: true },
       { label: 'Net Profit', value: net, bold: true },
     ];
-  }, [cashflow]);
+  }, [cashflow, period]);
 
   const tabs: TabItem[] = [
     { value: 'pl', label: 'Profit & Loss' },
@@ -76,7 +84,7 @@ export function FinancialReportsPage() {
         <Tabs items={tabs} value={tab} onChange={setTab} />
         {tab === 'pl' && (
           <div className="flex gap-2">
-            <Select sizeVariant="sm" className="w-32" options={[{ value: '2026-06', label: 'Jun 2026' }, { value: '2026-05', label: 'May 2026' }]} />
+            <Select sizeVariant="sm" className="w-36" value={period} onChange={(e) => setPeriod(e.target.value)} options={monthOptions} />
             <Select sizeVariant="sm" className="w-32" options={[{ value: '', label: 'All Branches' }]} />
           </div>
         )}

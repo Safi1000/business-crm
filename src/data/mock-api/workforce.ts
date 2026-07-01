@@ -8,10 +8,18 @@ export interface AttendanceRow extends AttendanceRecord {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** One employee's attendance for the viewed date — used to snapshot & revert (BUG-04). */
+export interface AttendanceSnapshot {
+  employeeId: string;
+  status: AttendanceMark;
+}
+
 export const attendanceApi = {
   async today(
-    filters: { branch?: string; department?: string; shift?: string; search?: string; onlyUnmarked?: boolean } = {},
+    filters: { branch?: string; department?: string; shift?: string; search?: string; onlyUnmarked?: boolean; date?: string } = {},
   ): Promise<AttendanceRow[]> {
+    // Respect the date chosen in the picker (BUG-05); default to today.
+    const d = filters.date || today();
     let eq = supabase.from('employee_list').select('*').neq('status', 'Inactive');
     if (filters.branch) eq = eq.eq('branch_id', filters.branch);
     if (filters.department) eq = eq.eq('department_id', filters.department);
@@ -20,7 +28,7 @@ export const attendanceApi = {
 
     const [{ data: emps, error: e1 }, { data: att, error: e2 }] = await Promise.all([
       eq.order('name'),
-      supabase.from('attendance_records').select('employee_id,status').eq('date', today()),
+      supabase.from('attendance_records').select('employee_id,status').eq('date', d),
     ]);
     if (e1) throw e1;
     if (e2) throw e2;
@@ -30,7 +38,7 @@ export const attendanceApi = {
       const employee = rowToCamel<Employee>(e)!;
       return {
         employeeId: employee.id,
-        date: today(),
+        date: d,
         status: statusByEmp.get(employee.id) ?? 'Unmarked',
         employee,
       } as AttendanceRow;
@@ -38,18 +46,40 @@ export const attendanceApi = {
     return filters.onlyUnmarked ? rows.filter((r) => r.status === 'Unmarked') : rows;
   },
 
-  async mark(employeeId: string, status: AttendanceMark): Promise<void> {
+  async mark(employeeId: string, status: AttendanceMark, date?: string): Promise<void> {
     const { error } = await supabase
       .from('attendance_records')
-      .upsert({ employee_id: employeeId, date: today(), status, marked_at: new Date().toISOString() }, { onConflict: 'employee_id,date' });
+      .upsert({ employee_id: employeeId, date: date || today(), status, marked_at: new Date().toISOString() }, { onConflict: 'employee_id,date' });
     if (error) throw error;
   },
 
-  async markAllPresent(employeeIds: string[]): Promise<void> {
+  async markAllPresent(employeeIds: string[], date?: string): Promise<void> {
     if (!employeeIds.length) return;
-    const rows = employeeIds.map((id) => ({ employee_id: id, date: today(), status: 'Present', marked_at: new Date().toISOString() }));
+    const d = date || today();
+    const rows = employeeIds.map((id) => ({ employee_id: id, date: d, status: 'Present', marked_at: new Date().toISOString() }));
     const { error } = await supabase.from('attendance_records').upsert(rows, { onConflict: 'employee_id,date' });
     if (error) throw error;
+  },
+
+  /**
+   * Bulk revert (BUG-04): restore each employee to a prior snapshot for `date`.
+   * "Unmarked" means no row existed, so those are deleted; everything else is
+   * upserted back to its previous status.
+   */
+  async revert(snapshot: AttendanceSnapshot[], date?: string): Promise<void> {
+    if (!snapshot.length) return;
+    const d = date || today();
+    const toClear = snapshot.filter((s) => s.status === 'Unmarked').map((s) => s.employeeId);
+    const toRestore = snapshot.filter((s) => s.status !== 'Unmarked');
+    if (toClear.length) {
+      const { error } = await supabase.from('attendance_records').delete().eq('date', d).in('employee_id', toClear);
+      if (error) throw error;
+    }
+    if (toRestore.length) {
+      const rows = toRestore.map((s) => ({ employee_id: s.employeeId, date: d, status: s.status, marked_at: new Date().toISOString() }));
+      const { error } = await supabase.from('attendance_records').upsert(rows, { onConflict: 'employee_id,date' });
+      if (error) throw error;
+    }
   },
 };
 

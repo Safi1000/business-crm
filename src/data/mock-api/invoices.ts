@@ -104,7 +104,11 @@ export const invoicesApi = {
     return (await fetchFull(id))!;
   },
 
-  async recordPayment(id: string, payment: Omit<Payment, 'id'>): Promise<Invoice> {
+  async recordPayment(
+    id: string,
+    payment: Omit<Payment, 'id'>,
+    opts: { bankId?: string; chequeNumber?: string } = {},
+  ): Promise<Invoice> {
     const { error } = await supabase.from('invoice_payments').insert({
       invoice_id: id,
       date: payment.date,
@@ -114,7 +118,46 @@ export const invoicesApi = {
       recorded_by: payment.recordedBy,
     });
     if (error) throw error;
-    // If now fully received, flip a Draft/Sent invoice to a non-derived terminal state is handled by the view.
+
+    // Context for the cheque / bank transaction (client name, invoice no, currency).
+    const { data: head } = await supabase
+      .from('invoice_list')
+      .select('number, currency, client_name')
+      .eq('id', id)
+      .maybeSingle();
+    const currency = (head?.currency as string) ?? 'PKR';
+
+    if (payment.method === 'Cheque') {
+      // Record an incoming cheque so it appears in Banks & Ledgers → Cheques (Pending
+      // until cleared — it does NOT credit the account balance yet).
+      const { error: cErr } = await supabase.from('cheques').insert({
+        number: opts.chequeNumber || payment.reference || '—',
+        type: 'Incoming',
+        bank_id: opts.bankId ?? null,
+        date: payment.date,
+        recipient: (head?.client_name as string) ?? '',
+        amount: payment.amount,
+        currency,
+        linked_to: (head?.number as string) ?? null,
+        status: 'Pending',
+      });
+      if (cErr) throw cErr;
+    } else if (opts.bankId) {
+      // Bank Transfer: credit the chosen account (mirrors expensesApi.create's debit).
+      const { error: tErr } = await supabase.from('bank_transactions').insert({
+        bank_id: opts.bankId,
+        date: payment.date,
+        description: `Payment received: ${(head?.number as string) ?? ''}`.trim(),
+        type: 'Credit',
+        amount: payment.amount,
+        currency,
+        reference: payment.reference ?? null,
+      });
+      if (tErr) throw tErr;
+      const { data: bank } = await supabase.from('bank_accounts').select('balance').eq('id', opts.bankId).single();
+      if (bank) await supabase.from('bank_accounts').update({ balance: Number(bank.balance) + payment.amount }).eq('id', opts.bankId);
+    }
+
     return (await fetchFull(id))!;
   },
 

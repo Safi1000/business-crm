@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Clock, CheckCircle2, Hourglass, Check, X } from 'lucide-react';
 import { PageHeader, KpiStrip } from '@/shared';
-import { Select, Button } from '@ds/primitives';
+import { Select, Button, Input } from '@ds/primitives';
 import { KPICard, DataTable, StatusBadge, Avatar, type Column } from '@ds/data-display';
 import { EmptyState, toast } from '@ds/feedback';
 import { formatDate } from '@/lib/format';
@@ -10,10 +10,11 @@ import { useUrlFilters } from '@/lib/useUrlFilters';
 
 export function TimesheetsPage() {
   const qc = useQueryClient();
-  const { values, set, reset, activeCount } = useUrlFilters({ status: '' });
+  const { values, set, reset, activeCount } = useUrlFilters({ status: '', from: '', to: '' });
+  // Query key includes from/to so changing the date range re-fetches automatically (BUG-05).
   const { data: sheets = [] } = useQuery({
-    queryKey: ['timesheets', values.status],
-    queryFn: () => timesheetsApi.adminList(values.status || undefined),
+    queryKey: ['timesheets', values.status, values.from, values.to],
+    queryFn: () => timesheetsApi.adminList({ status: values.status || undefined, from: values.from || undefined, to: values.to || undefined }),
   });
 
   const decide = useMutation({
@@ -53,8 +54,11 @@ export function TimesheetsPage() {
         <KPICard label="Approved" value={kpis.approved} format={(n) => String(Math.round(n))} icon={CheckCircle2} tone="success" />
         <KPICard label="Total Hours Logged" value={kpis.hours} format={(n) => `${Math.round(n)}h`} icon={Clock} tone="brand" />
       </KpiStrip>
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <Select sizeVariant="sm" className="w-40" value={values.status ?? ''} onChange={(e) => set({ status: e.target.value })} options={[{ value: '', label: 'All Statuses' }, ...['Draft', 'Submitted', 'Approved', 'Rejected'].map((s) => ({ value: s, label: s }))]} />
+        <Input type="date" sizeVariant="sm" className="w-40" aria-label="From" value={values.from ?? ''} max={values.to || undefined} onChange={(e) => set({ from: e.target.value })} />
+        <span className="text-sm text-content-subtle">–</span>
+        <Input type="date" sizeVariant="sm" className="w-40" aria-label="To" value={values.to ?? ''} min={values.from || undefined} onChange={(e) => set({ to: e.target.value })} />
         {activeCount > 0 && <button onClick={reset} className="text-sm font-medium text-brand-600">Reset</button>}
       </div>
       <DataTable data={sheets} columns={columns} rowKey={(s) => s.id} empty={<EmptyState icon={Clock} title="No timesheets" description="Submitted timesheets will appear here." />} />

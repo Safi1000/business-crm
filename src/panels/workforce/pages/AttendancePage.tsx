@@ -32,11 +32,11 @@ export function AttendancePage() {
   const [mode, setMode] = useState<'manual' | 'integrated'>('manual');
   const { data: branches = [] } = useBranches();
   const { data: departments = [] } = useDepartments();
-  const { mark, markAll } = useAttendanceMutations();
+  const { mark, markAll, revert } = useAttendanceMutations();
 
   const filters = {
     search: values.search, branch: values.branch, department: values.department,
-    shift: values.shift, onlyUnmarked: values.unmarked === '1',
+    shift: values.shift, onlyUnmarked: values.unmarked === '1', date,
   };
   const { data: rows = [], isLoading } = useAttendanceToday(filters);
 
@@ -70,9 +70,29 @@ export function AttendancePage() {
             {mode === 'manual' && (
               <Button
                 icon={CheckCheck}
+                loading={markAll.isPending}
                 onClick={async () => {
-                  await markAll.mutateAsync(rows.map((r) => r.employeeId));
-                  toast.success('All marked Present', { action: { label: 'Undo', onClick: () => undefined } });
+                  // Snapshot current statuses so Undo can restore them (BUG-04).
+                  const snapshot = rows.map((r) => ({ employeeId: r.employeeId, status: r.status }));
+                  try {
+                    await markAll.mutateAsync({ ids: rows.map((r) => r.employeeId), date });
+                    toast.success('All marked Present', {
+                      duration: 8000,
+                      action: {
+                        label: 'Undo',
+                        onClick: async () => {
+                          try {
+                            await revert.mutateAsync({ snapshot, date });
+                            toast.success('Attendance reverted successfully');
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : 'Could not undo. Try again.');
+                          }
+                        },
+                      },
+                    });
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : 'Could not mark attendance. Try again.');
+                  }
                 }}
               >
                 Mark All Present
@@ -145,7 +165,7 @@ export function AttendancePage() {
                       return (
                         <button
                           key={opt.value}
-                          onClick={() => mark.mutate({ id: r.employeeId, status: opt.value })}
+                          onClick={() => mark.mutate({ id: r.employeeId, status: opt.value, date })}
                           className={cn(
                             'flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-bold transition-all',
                             active ? `${activeTone[opt.tone]} border-transparent` : 'border-line text-content-subtle hover:border-line-strong hover:text-content',

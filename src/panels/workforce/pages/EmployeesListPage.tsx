@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Download, Users, UserCheck, Plane, FileWarning, Eye, Pencil, MoreHorizontal } from 'lucide-react';
+import { Plus, Download, Users, UserCheck, Plane, FileWarning, Eye, Pencil, MoreHorizontal, Trash2 } from 'lucide-react';
 import { PageHeader, KpiStrip, FilterBar } from '@/shared';
 import { exportToXlsx } from '@/lib/export';
 import { Button, Select } from '@ds/primitives';
 import { KPICard, DataTable, StatusBadge, Avatar, Pagination, type Column, type SortState } from '@ds/data-display';
-import { EmptyState, toast } from '@ds/feedback';
+import { EmptyState, ConfirmDialog, toast } from '@ds/feedback';
 import { DropdownMenu } from '@ds/overlays';
 import { useUrlFilters } from '@/lib/useUrlFilters';
-import { useEmployees, useBranches, useDepartments } from '../hooks';
+import { useEmployees, useBranches, useDepartments, useEmployeeMutations } from '../hooks';
 import { EmployeeFormModal } from '../modals/EmployeeFormModal';
 import { routes } from '@/config/routes';
 import type { Employee } from '@/types';
@@ -23,6 +23,8 @@ export function EmployeesListPage() {
   const [sort, setSort] = useState<SortState>({ key: 'name', dir: 'asc' });
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | undefined>();
+  const [deleting, setDeleting] = useState<Employee | null>(null);
+  const { remove } = useEmployeeMutations();
 
   const { data: branches = [] } = useBranches();
   const { data: departments = [] } = useDepartments();
@@ -36,10 +38,12 @@ export function EmployeesListPage() {
 
   const kpis = useMemo(() => {
     const rows = all?.rows ?? [];
+    // Case-insensitive compare so a value stored as "active"/"Active" both count (BUG-03).
+    const is = (e: Employee, s: string) => (e.status ?? '').toLowerCase() === s.toLowerCase();
     return {
       total: rows.length,
-      active: rows.filter((e) => e.status === 'Active').length,
-      onLeave: rows.filter((e) => e.status === 'On Leave').length,
+      active: rows.filter((e) => is(e, 'Active')).length,
+      onLeave: rows.filter((e) => is(e, 'On Leave')).length,
       missingDocs: rows.filter((e) => !e.docsComplete).length,
     };
   }, [all]);
@@ -79,6 +83,8 @@ export function EmployeesListPage() {
             items={[
               { label: 'Edit', icon: Pencil, onClick: () => { setEditing(e); setModalOpen(true); } },
               { label: 'View Payroll', onClick: () => navigate(routes.payroll) },
+              'divider',
+              { label: 'Delete', icon: Trash2, danger: true, onClick: () => setDeleting(e) },
             ]}
           />
         </div>
@@ -106,9 +112,9 @@ export function EmployeesListPage() {
       />
 
       <KpiStrip cols={4}>
-        <KPICard label="Total Employees" value={kpis.total} format={(n) => String(Math.round(n))} icon={Users} tone="brand" />
-        <KPICard label="Active" value={kpis.active} format={(n) => String(Math.round(n))} icon={UserCheck} tone="success" />
-        <KPICard label="On Leave Today" value={kpis.onLeave} format={(n) => String(Math.round(n))} icon={Plane} tone="warning" />
+        <KPICard label="Total Employees" value={kpis.total} format={(n) => String(Math.round(n))} icon={Users} tone="brand" onClick={() => set({ status: '' })} />
+        <KPICard label="Active" value={kpis.active} format={(n) => String(Math.round(n))} icon={UserCheck} tone="success" onClick={() => set({ status: 'Active' })} />
+        <KPICard label="On Leave Today" value={kpis.onLeave} format={(n) => String(Math.round(n))} icon={Plane} tone="warning" onClick={() => set({ status: 'On Leave' })} />
         <KPICard label="Missing Docs" value={kpis.missingDocs} format={(n) => String(Math.round(n))} icon={FileWarning} tone="danger" />
       </KpiStrip>
 
@@ -147,6 +153,24 @@ export function EmployeesListPage() {
       )}
 
       <EmployeeFormModal open={modalOpen} onClose={() => { setModalOpen(false); setEditing(undefined); }} employee={editing} />
+
+      <ConfirmDialog
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        title="Delete employee?"
+        message="Are you sure you want to delete this employee? This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (!deleting) return;
+          try {
+            await remove.mutateAsync(deleting.id);
+            toast.success('Employee deleted successfully');
+            setDeleting(null);
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Could not delete employee. Try again.');
+          }
+        }}
+      />
     </div>
   );
 }

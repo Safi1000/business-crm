@@ -27,11 +27,22 @@ Deno.serve(async (req) => {
   const { name, email, password, title, role, permissions, company_id } = body;
   if (!email) return json({ error: 'email required' }, 400);
 
+  // ── BUG-01: validate input server-side (mirror of src/lib/validation.ts) ──
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+  if (!emailOk) return json({ error: 'Enter a valid email' }, 400);
+  if (name != null && String(name).trim() && !/^[A-Za-z][A-Za-z\s.'-]*$/.test(String(name).trim())) {
+    return json({ error: 'Name may only contain letters, spaces and hyphens' }, 400);
+  }
+  const INJECTION = /(<\s*script|<\s*\/?[a-z]|javascript:|on\w+\s*=|\d+\s*=\s*\d+|--|\/\*|\*\/|[<>"'`\\])/i;
+  if (title != null && INJECTION.test(String(title))) {
+    return json({ error: 'Title contains unsafe characters' }, 400);
+  }
+
   // SSA may target any company; defaults to the company it's currently viewing.
   // SA may only create staff within their own company (never another SSA/SA).
   const targetCompany = isSSA ? (company_id ?? me.view_as_company) : me.company_id;
   if (!targetCompany) return json({ error: 'company_id required (switch into a company first)' }, 400);
-  let targetRole = isSSA ? (role ?? 'Super Admin') : (role ?? 'Ops');
+  const targetRole = isSSA ? (role ?? 'Super Admin') : (role ?? 'Ops');
   if (targetRole === 'Super Super Admin') return json({ error: 'cannot create another SSA' }, 400);
   if (isSA && targetRole === 'Super Admin') return json({ error: 'only the SSA can create Super Admins' }, 403);
 
